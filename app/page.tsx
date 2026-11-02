@@ -786,7 +786,7 @@ function ProgressPage({ store, onWeight, onMeasurement }: { store: Store; onWeig
   const records = store.sessions.flatMap(session => session.exercises.flatMap(exercise => exercise.sets.filter(set => set.done && set.weightKg > 0).map(set => ({ name: exercise.name, kg: set.weightKg, reps: set.reps, date: session.date }))))
   const personalRecords = Array.from(new Set(records.map(record => record.name))).map(name => {
     const entries = records.filter(record => record.name === name)
-    return { name, ...entries.reduce((best, item) => item.kg > best.kg ? item : best, entries[0]) }
+    return entries.reduce((best, item) => item.kg > best.kg ? item : best, entries[0])
   }).sort((a, b) => b.kg - a.kg).slice(0, 5)
   const best = bestStreak(store.sessions, store.profile.weeklyTarget)
   return <>
