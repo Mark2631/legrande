@@ -367,7 +367,7 @@ export default function Page() {
   const [store, setStore] = useState<Store | null>(null)
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null)
   const [pausedWorkout, setPausedWorkout] = useState<ActiveWorkout | null>(null)
-  const [tab, setTab> = useState<Tab>('today')
+  const [tab, setTab] = useState<Tab>('today')
   const [modal, setModal] = useState<'weight' | 'measurement' | null>(null)
   const [toast, setToast] = useState('')
 
