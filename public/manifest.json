@@ -10,10 +10,10 @@
   "description": "Your LeGrande gym and home workout plans, progress and training history.",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/legrande-logo.png",
       "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }

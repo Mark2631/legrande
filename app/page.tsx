@@ -15,7 +15,7 @@ type Units = 'metric' | 'imperial'
 type Tab = 'today' | 'train' | 'progress' | 'profile'
 type MemberType = 'new' | 'existing'
 type SplitStyle = 'focused' | 'ppl' | 'upper_lower'
-type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not_to_say'
+type Gender = 'woman' | 'man'
 type PackageType = 'daily' | 'weekly' | 'monthly' | 'semester'
 type Profile = {
   name: string
@@ -84,7 +84,7 @@ type Program = { id: string; title: string; focus: string; level: Level; duratio
 const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
-  name: '', phone: '', gender: 'prefer_not_to_say', bodyweightKg: null, memberType: 'new',
+  name: '', phone: '', gender: 'man', bodyweightKg: null, memberType: 'new',
   packageType: 'daily', packageStart: '', packageEnd: '', sessionStartTime: '08:00', splitStyle: 'focused',
   goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
 }
@@ -101,7 +101,7 @@ const PROGRAMS: Program[] = [
       { name: 'Machine chest press', muscle: 'Chest', equipment: 'Machine', sets: 3, reps: 10, rest: 90, cue: 'Keep shoulder blades supported and avoid locking out hard.' },
       { name: 'Lat pulldown', muscle: 'Back', equipment: 'Cable', sets: 3, reps: 10, rest: 90, cue: 'Drive elbows down. Avoid swinging your torso.' },
       { name: 'Dumbbell Romanian deadlift', muscle: 'Hamstrings', equipment: 'Dumbbells', sets: 2, reps: 10, rest: 120, cue: 'Push hips back and keep the weights close to your legs.' },
-      { name: 'Plank', muscle: 'Core', equipment: 'Bodyweight', sets: 2, reps: 30, rest: 60, cue: 'Keep ribs down and maintain a straight line from head to heels.' }
+      { name: 'Plank', muscle: 'Core', equipment: 'Bodyweight', sets: 2, reps: 30, rest: 60, cue: 'Keep ribs down and maintain a straight line from head to heels.', durationSec: 30 }
     ]
   },
   {
@@ -378,91 +378,37 @@ HOME_PROGRAMS.forEach(program => {
   }));
 });
 
-const PHOTO_URLS = {
-  gym: {
-    general: {
-      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
-    },
-    legs: {
-      man: 'https://images.unsplash.com/photo-1744551612249-655d096b9f95?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1662385930032-d9286e02325f?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1000&q=82'
-    },
-    shoulders: {
-      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
-    },
-    arms: {
-      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
-    },
-    chest: {
-      man: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=82'
-    },
-    back: {
-      man: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=82'
-    }
-  },
-  home: {
-    general: {
-      man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
-    },
-    push: {
-      man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
-    },
-    legs: {
-      man: 'https://images.unsplash.com/photo-1714646442127-cac6c14a04c7?auto=format&fit=crop&w=1000&q=82',
-      woman: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
-    },
-    core: {
-      man: 'https://www.bornfitness.com/wp-content/uploads/2021/06/COVERS-1-1200x1080.png',
-      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
-      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
-    }
-  }
+// Exercise photos from free-exercise-db (Unlicense). Only direct exercise matches are shown.
+const EXERCISE_IMAGES: Record<string, string> = {
+  'barbell bench press': 'Barbell_Bench_Press_-_Medium_Grip', 'machine chest press': 'Leverage_Chest_Press',
+  'incline dumbbell press': 'Incline_Dumbbell_Press', 'lat pulldown': 'Wide-Grip_Lat_Pulldown', 'seated cable row': 'Seated_Cable_Rows',
+  'leg press': 'Leg_Press', 'back squat': 'Barbell_Full_Squat', 'goblet squat': 'Goblet_Squat',
+  'dumbbell romanian deadlift': 'Romanian_Deadlift', 'romanian deadlift': 'Romanian_Deadlift', 'seated leg curl': 'Seated_Leg_Curl',
+  'standing calf raise': 'Standing_Calf_Raises', 'dumbbell shoulder press': 'Dumbbell_Shoulder_Press', 'seated dumbbell shoulder press': 'Dumbbell_Shoulder_Press',
+  'dumbbell lateral raise': 'Side_Lateral_Raise', 'cable face pull': 'Face_Pull', 'dumbbell curl': 'Seated_Dumbbell_Curl', 'hammer curl': 'Hammer_Curls',
+  'cable triceps pushdown': 'Triceps_Pushdown', 'overhead cable triceps extension': 'Cable_Rope_Overhead_Triceps_Extension',
+  'dumbbell fly': 'Dumbbell_Flyes', 'cable chest fly': 'Cable_Crossover', 'leg extension': 'Leg_Extensions', 'hip thrust': 'Barbell_Hip_Thrust',
+  'plank': 'Plank', 'dead bug': 'Dead_Bug', 'treadmill walk': 'Walking_Treadmill', 'bodyweight squat': 'Bodyweight_Squat',
+  'incline push-up': 'Incline_Push-Up', 'incline close-grip push-up': 'Incline_Push-Up_Close-Grip', 'close-grip push-up': 'Incline_Push-Up_Close-Grip',
+  'arm circles': 'Arm_Circles', 'sit-up': 'Sit-Up', 'mountain climber': 'Mountain_Climbers', 'superman hold': 'Superman',
+  'dumbbell split squat': 'Split_Squat_with_Dumbbells', 'reverse dumbbell fly': 'Dumbbell_Lying_Rear_Lateral_Raise',
+  'calf press on the leg press machine': 'Calf_Press_On_The_Leg_Press_Machine'
 };
-function exerciseImage(name: string, mode: 'gym' | 'home' = 'gym', gender: Gender = 'prefer_not_to_say') {
-  const person = gender === 'man' ? 'man' : gender === 'woman' ? 'woman' : 'neutral';
-  const value = name.toLowerCase();
-  if (mode === 'home') {
-    const category = /sit.?up|crunch|dead bug|bird dog|plank|mountain climber/.test(value) ? 'core'
-      : /squat|lunge|leg|glute|calf/.test(value) ? 'legs'
-        : /push.?up|triceps|push/.test(value) ? 'push' : 'general';
-    return PHOTO_URLS.home[category][person] || PHOTO_URLS.home.general[person];
-  }
-  const category = /squat|lunge|leg press|leg curl|calf|glute|romanian|deadlift/.test(value) ? 'legs'
-    : /lateral raise|shoulder|pike|face pull|reverse fly|snow angel|arm circle/.test(value) ? 'shoulders'
-      : /triceps|pushdown|dip|close-grip|curl|biceps/.test(value) ? 'arms'
-        : /lat|row|superman|bird dog|cat-cow/.test(value) ? 'back'
-          : /chest|bench|push-up|fly/.test(value) ? 'chest' : 'general';
-  return PHOTO_URLS.gym[category][person] || PHOTO_URLS.gym.general[person];
+function exerciseImage(name: string) {
+  const slug = EXERCISE_IMAGES[name.trim().toLowerCase()];
+  return slug ? 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/' + slug + '/0.jpg' : '';
 }
-function programImage(program: Program, mode: 'gym' | 'home' = 'gym', gender: Gender = 'prefer_not_to_say') {
-  return exerciseImage(program.exercises.find(item => item.phase === 'main')?.name || program.exercises[0]?.name || program.focus, mode, gender);
+function programImage(program: Program) {
+  const firstMain = program.exercises.find(item => item.phase === 'main') || program.exercises[0];
+  return firstMain ? exerciseImage(firstMain.name) : '';
 }
-function TrainingPhoto({ name, mode = 'gym', gender = 'prefer_not_to_say', alt, className }: {
-  name: string; mode?: 'gym' | 'home'; gender?: Gender; alt: string; className?: string
-}) {
+function TrainingPhoto({ name, alt, className }: { name: string; mode?: 'gym' | 'home'; gender?: Gender; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false);
-  const src = exerciseImage(name, mode, gender);
+  const src = exerciseImage(name);
   useEffect(() => { setFailed(false); }, [src]);
-  if (failed) return <div className={'training-photo-fallback ' + (className || '')} role="img" aria-label={alt}><Dumbbell size={23} /><span>{mode === 'home' ? 'BODYWEIGHT MOVEMENT' : 'GYM MOVEMENT'}</span></div>;
-  return <img src={src} alt={alt} className={className || ''} loading="lazy" onError={() => setFailed(true)} />;
+  if (!src || failed) return <div className={'training-photo-fallback ' + (className || '')} role='img' aria-label={alt}><Dumbbell size={20} /><strong>{name}</strong><span>PHOTO GUIDE UNAVAILABLE</span></div>;
+  return <img src={src} alt={alt} className={className || ''} loading='lazy' onError={() => setFailed(true)} />;
 }
-
 const NAV_ITEMS = [
   { id: 'today' as Tab, label: 'Today', icon: Home },
   { id: 'train' as Tab, label: 'Train', icon: Dumbbell },
@@ -593,34 +539,46 @@ function gymCooldownForFocus(focus: string): ProgramExercise[] {
 function personaliseGymProgram(base: Program, level: Level, goal: Goal): Program {
   const main = base.exercises.filter(item => item.phase !== 'warmup' && item.phase !== 'cooldown').map(exercise => {
     const compound = /press|squat|deadlift|row|pulldown|leg press|split squat/i.test(exercise.name);
-    const sets = level === 'beginner' ? 2 : level === 'advanced' ? Math.max(3, Math.round(exercise.sets * 1.15)) : Math.max(2, Math.min(3, exercise.sets));
-    const reps = goal === 'strength' ? (compound ? 6 : 8) : goal === 'general_fitness' ? 10 : compound ? 8 : 12;
-    const rest = goal === 'strength' ? (compound ? 150 : 90) : compound ? 90 : 60;
-    return { ...exercise, phase: 'main' as const, sets, reps: level === 'beginner' ? Math.min(10, reps) : reps, rest };
+    const beginner = level === 'beginner', advanced = level === 'advanced';
+    const sets = goal === 'strength' ? (beginner ? (compound ? 3 : 2) : advanced ? (compound ? 5 : 3) : (compound ? 4 : 3))
+      : goal === 'build_muscle' ? (beginner ? 2 : advanced ? 4 : 3) : (beginner ? 2 : advanced ? 3 : 3);
+    const reps = goal === 'strength' ? (compound ? 5 : 7) : goal === 'build_muscle' ? (compound ? 8 : 12) : (compound ? 10 : 12);
+    const rest = goal === 'strength' ? (compound ? 180 : 120) : goal === 'build_muscle' ? (compound ? 120 : 75) : goal === 'fat_loss' ? (compound ? 75 : 45) : (compound ? 90 : 60);
+    return { ...exercise, phase: 'main' as const, sets, reps, rest };
   });
-  return {
-    ...base, level,
-    description: base.description + ' Set volume and rest periods are adapted to your goal and experience.',
-    duration: base.duration + 10,
-    exercises: [...gymWarmupForFocus(base.focus), ...main, ...gymCooldownForFocus(base.focus)]
-  };
+  if (goal === 'fat_loss') main.push({ name: 'Treadmill walk', muscle: 'Conditioning', equipment: 'Treadmill', sets: 1, reps: 8, rest: 0, cue: 'Walk at a brisk but sustainable pace. Keep breathing controlled and reduce speed if needed.', phase: 'main', durationSec: 480 });
+  const goalCopy: Record<Goal, string> = { build_muscle: 'Muscle-building volume with controlled repetitions and enough rest to maintain good form.', strength: 'Strength-focused sets use lower repetitions and longer rests. Choose a load you can lift cleanly.', fat_loss: 'Strength work is paired with a short, timed conditioning block. Progress comes from consistent training and broader lifestyle habits.', general_fitness: 'Moderate repetitions and balanced movement patterns build a sustainable base.' };
+  return { ...base, level, description: goalCopy[goal], duration: base.duration + (goal === 'fat_loss' ? 18 : 10), exercises: [...gymWarmupForFocus(base.focus), ...main, ...gymCooldownForFocus(base.focus)] };
 }
 
 function getProgramForDay(date: Date, target: number, level: Level = 'beginner', splitStyle: SplitStyle = 'focused', goal: Goal = 'build_muscle') {
   const day = (date.getDay() + 6) % 7;
   const schedules: Record<SplitStyle, Record<number, { days: number[]; ids: string[] }>> = {
-    focused: { 3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] }, 4: { days: [0, 1, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders'] }, 5: { days: [0, 1, 2, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] } },
-    ppl: { 3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] }, 4: { days: [0, 1, 3, 5], ids: ['push', 'pull', 'legs', 'upper'] }, 5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] } },
-    upper_lower: { 3: { days: [0, 2, 4], ids: ['upper', 'lower', 'upper'] }, 4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] }, 5: { days: [0, 1, 2, 4, 5], ids: ['upper', 'lower', 'push', 'pull', 'legs'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'] } }
+    focused: {
+      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
+      4: { days: [0, 1, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders'] },
+      5: { days: [0, 1, 2, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms', 'push'] }
+    },
+    ppl: {
+      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
+      4: { days: [0, 1, 3, 5], ids: ['push', 'pull', 'legs', 'upper'] },
+      5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
+    },
+    upper_lower: {
+      3: { days: [0, 2, 4], ids: ['upper', 'lower', 'upper'] },
+      4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] },
+      5: { days: [0, 1, 2, 4, 5], ids: ['upper', 'lower', 'push', 'pull', 'legs'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'] }
+    }
   };
   const schedule = schedules[splitStyle]?.[target] || schedules.focused[4];
-  let index = schedule.days.indexOf(day);
+  const index = schedule.days.indexOf(day);
   if (index < 0) return null;
   const base = PROGRAMS.find(program => program.id === schedule.ids[index]);
-  if (!base) return null;
-  return personaliseGymProgram(base, level, goal);
+  return base ? personaliseGymProgram(base, level, goal) : null;
 }
-
 function getHomeProgramForDay(date: Date, profile: Profile) {
   const gymPlan = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
   if (!gymPlan) return null;
@@ -717,7 +675,7 @@ function safeReadStore(): Store {
       const packageWindow = saved.packageStart && saved.packageEnd ? { packageStart: saved.packageStart, packageEnd: saved.packageEnd }
         : completed ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...saved, phone, packageType,
-        gender: saved.gender || 'prefer_not_to_say', bodyweightKg: Number(saved.bodyweightKg) > 0 ? Number(saved.bodyweightKg) : null,
+        gender: saved.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(saved.bodyweightKg) > 0 ? Number(saved.bodyweightKg) : null,
         sessionStartTime: saved.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: completed };
       return { version: 2, profile, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
         weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [], measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [] };
@@ -744,7 +702,7 @@ function safeReadStore(): Store {
       const packageWindow = isValidKenyanPhone(phone) ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
         memberType: legacy.profile?.memberType || 'existing', splitStyle: legacy.profile?.splitStyle || 'focused',
-        gender: legacy.profile?.gender || 'prefer_not_to_say', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile?.bodyweightKg) : null,
+        gender: legacy.profile?.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile?.bodyweightKg) : null,
         packageType, sessionStartTime: legacy.profile?.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: isValidKenyanPhone(phone) };
       const migrated: Store = { version: 2, profile, sessions: migratedSessions, weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || [] };
       localStorage.setItem(STORE_KEY, JSON.stringify(migrated)); return migrated;
@@ -832,7 +790,7 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender || 'prefer_not_to_say', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))), ...((next.profile?.packageStart && next.profile?.packageEnd) ? {} : createPackageWindow(next.profile?.packageType || 'daily')) },
+      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))), ...((next.profile?.packageStart && next.profile?.packageEnd) ? {} : createPackageWindow(next.profile?.packageType || 'daily')) },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
@@ -916,9 +874,8 @@ export default function Page() {
 }
 
 function Brand() {
-  return <div className="brand-lockup">
-    <img src="/logo.svg" alt="LeGrande Fitness Center LF logo" />
-    <div><strong>LEGRANDE</strong><span>FITNESS CENTER</span></div>
+  return <div className="brand-lockup brand-lockup-real">
+    <img src="/legrande-logo.png" alt="LeGrande Fitness Center logo" />
   </div>
 }
 
@@ -956,7 +913,6 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
         <label className="field-label">Full name<input autoFocus value={profile.name} onChange={event => update({ name: event.target.value })} placeholder="Your name" maxLength={60} /></label>
         <label className="field-label">Kenyan mobile number</label>
         <div className="ke-phone-field"><span>+254</span><input type="tel" inputMode="numeric" autoComplete="tel-national" value={phoneNationalPart(profile.phone)} onChange={event => update({ phone: normalizeKenyanPhone(event.target.value) })} placeholder="7XX XXX XXX" maxLength={9} /></div>
-        <p className="phone-help">Enter nine digits after +254, starting with 7 or 1.</p>
         <span className="field-label">Your membership</span>
         <div className="member-type-grid">
           <button type="button" className={profile.memberType === 'existing' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'existing' })}><strong>Current member</strong><span>I already train at LeGrande.</span></button>
@@ -971,7 +927,7 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
         <span className="field-label">Gender</span>
         <div className="gender-choice-grid">
           {([
-            ['woman', 'Woman'], ['man', 'Man'], ['non_binary', 'Non-binary'], ['prefer_not_to_say', 'Prefer not to say']
+            ['man', 'Man'], ['woman', 'Woman']
           ] as [Gender, string][]).map(([value, label]) => <button type="button" key={value} className={profile.gender === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ gender: value })}><strong>{label}</strong></button>)}
         </div>
         <span className="field-label">Main goal</span>
@@ -1186,7 +1142,6 @@ function HomeWorkoutPlayer({ workout, themeDark, gender, onChange, onFinish, onE
   const [finished, setFinished] = useState(false);
   const [completedMoves, setCompletedMoves] = useState<number[]>([]);
   const current = workout.exercises[index];
-  const next = workout.exercises[index + 1];
   const total = workout.exercises.length;
   const progress = total ? completedMoves.length / total * 100 : 0;
   const markMove = (moveIndex: number) => {
@@ -1247,13 +1202,19 @@ function HomeWorkoutPlayer({ workout, themeDark, gender, onChange, onFinish, onE
         </div>
         <div className="home-player-timer"><strong>{phase === 'rest' ? 'REST' : current.name}</strong><span>{String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}</span><small>{phase === 'rest' ? 'Get ready for the next movement' : 'Work at a controlled pace · target ' + (current.sets[0]?.reps ?? 0) + ' reps'}</small></div>
         {phase === 'move' && <div className="home-player-instruction"><span className="eyebrow">HOW TO DO IT</span><p>{current.cue}</p><div><span>{current.equipment}</span><span>{current.muscle}</span></div></div>}
-        {next && <div className="home-player-next"><span className="eyebrow">UP NEXT</span><TrainingPhoto name={next.name} mode="home" gender={gender} alt={next.name + ' next bodyweight movement'} /><div><strong>{next.name}</strong><span>{next.phase === 'cooldown' ? 'Cool-down' : next.muscle}</span></div><ChevronRight size={17} /></div>}
         <div className="home-player-controls"><button className="button secondary-button" onClick={() => { setRunning(!running); }}><span>{running ? 'Pause' : 'Resume'}</span></button><button className="button primary-button" onClick={phase === 'rest' ? () => { const nextIndex = index + 1; if (nextIndex < total) { setIndex(nextIndex); setPhase('move'); setRemaining(workout.exercises[nextIndex]?.durationSec || 40); } } : skipMove}>{phase === 'rest' ? 'Skip rest' : 'Skip movement'} <ArrowRight size={15} /></button></div>
       </>}
     </main>
   </div>;
 }
 
+function MovementTimer({ durationSec }: { durationSec: number }) {
+  const [remaining, setRemaining] = useState(durationSec);
+  const [running, setRunning] = useState(false);
+  useEffect(() => { if (!running || remaining <= 0) return; const interval = window.setInterval(() => setRemaining(value => Math.max(0, value - 1)), 1000); return () => window.clearInterval(interval); }, [running, remaining]);
+  useEffect(() => { if (remaining === 0 && running) { setRunning(false); if ('vibrate' in navigator) navigator.vibrate([180, 80, 180]); } }, [remaining, running]);
+  return <div className='movement-timer'><div><span className='eyebrow'>TIMED MOVEMENT</span><strong>{formatTime(remaining)}</strong></div><div className='movement-timer-actions'><button type='button' onClick={() => setRunning(value => !value)}>{running ? 'Pause timer' : remaining === 0 ? 'Done' : 'Start timer'}</button><button type='button' onClick={() => { setRemaining(durationSec); setRunning(false); }}>Reset</button></div></div>;
+}
 function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, onFinish, onExit }: {
   workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean; gender: Gender;
   onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
@@ -1313,7 +1274,8 @@ function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, 
         const previousPhase = workout.exercises[exerciseIndex - 1]?.phase || 'main';
         return <Fragment key={exercise.id}>{(exerciseIndex === 0 || previousPhase !== (exercise.phase || 'main')) && <div className="exercise-phase-divider"><span>{phaseLabel}</span><i /></div>}<article className="active-exercise">
           <div className="active-exercise-head"><TrainingPhoto className="runner-exercise-photo" name={exercise.name} mode="gym" gender={gender} alt={exercise.name + ' gym movement'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
-          <p className="form-cue">{exercise.cue}{exercise.durationSec ? ' · ' + (exercise.durationSec >= 60 ? Math.round(exercise.durationSec / 60) + ' min' : exercise.durationSec + ' sec') + ' guide' : ''}</p>
+          <p className="form-cue">{exercise.cue}{exercise.durationSec ? ' · ' + (exercise.durationSec >= 60 ? Math.round(exercise.durationSec / 60) + ' min' : exercise.durationSec + ' sec') + ' timed target' : ''}</p>
+          {exercise.durationSec && <MovementTimer durationSec={exercise.durationSec} />}
           {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
           {(() => {
             const previousSession = sessions.find(session => session.exercises.some(item => item.name === exercise.name))
@@ -1446,7 +1408,7 @@ function ProfilePage({ store, persist, resetData, onImport }: { store: Store; pe
           <label className="field-label">Kenyan mobile number</label>
           <div className="ke-phone-field"><span>+254</span><input type="tel" inputMode="numeric" value={phoneNationalPart(profile.phone)} onChange={event => updateProfile({ phone: normalizeKenyanPhone(event.target.value) })} maxLength={9} /></div>
           <label className="field-label">Member status<select value={profile.memberType} onChange={event => updateProfile({ memberType: event.target.value as MemberType })}><option value="existing">Current LeGrande member</option><option value="new">Joining LeGrande</option></select></label>
-          <label className="field-label">Gender<select value={profile.gender} onChange={event => updateProfile({ gender: event.target.value as Gender })}><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option></select></label>
+          <label className="field-label">Gender<select value={profile.gender} onChange={event => updateProfile({ gender: event.target.value as Gender })}><option value="man">Man</option><option value="woman">Woman</option></select></label>
           <label className="field-label">Primary goal<select value={profile.goal} onChange={event => updateProfile({ goal: event.target.value as Goal })}><option value="build_muscle">Build muscle</option><option value="strength">Get stronger</option><option value="fat_loss">Lose body fat</option><option value="general_fitness">General fitness</option></select></label>
           <label className="field-label">Training experience<select value={profile.level} onChange={event => updateProfile({ level: event.target.value as Level })}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
           <label className="field-label">Training split<select value={profile.splitStyle} onChange={event => updateProfile({ splitStyle: event.target.value as SplitStyle })}><option value="focused">Focused muscle days</option><option value="ppl">Push / Pull / Legs</option><option value="upper_lower">Upper / Lower</option></select></label>

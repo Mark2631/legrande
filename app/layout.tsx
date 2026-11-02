@@ -3,11 +3,11 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'LeGrande Fitness Center | Member Space',
-  description: 'Your training, progress and recovery companion at LeGrande Fitness Center.',
+  description: 'Your training plans, workouts and progress at LeGrande Fitness Center.',
   manifest: '/manifest.json',
   applicationName: 'LeGrande Fitness Center',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LeGrande' },
-  icons: { icon: '/logo.svg', apple: '/logo.svg' },
+  icons: { icon: '/legrande-logo.png', apple: '/legrande-logo.png' },
   themeColor: '#f6f6f4'
 }
 

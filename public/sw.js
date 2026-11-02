@@ -1,5 +1,5 @@
-const CACHE = 'legrande-member-v4'
-const CORE = ['/manifest.json', '/logo.svg']
+const CACHE = 'legrande-member-v5'
+const CORE = ['/manifest.json', '/legrande-logo.png']
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE)))

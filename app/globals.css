@@ -211,3 +211,16 @@
 .view-tabs button{flex:0 0 auto;padding-left:14px;padding-right:14px}
 .training-mode-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
 @media(max-width:620px){.view-tabs{display:grid;width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.view-tabs button{width:100%;flex:initial;padding:10px 4px 12px;font-size:9px}}
+
+.brand-lockup-real{padding:0 4px;min-height:104px;align-items:center;justify-content:flex-start}
+.brand-lockup-real img{display:block;width:138px;height:auto;max-height:128px;object-fit:contain;object-position:left center}
+.mobile-header .brand-lockup-real{min-height:0;padding:0}.mobile-header .brand-lockup-real img{width:96px;height:auto;max-height:58px}
+.onboard-brand .brand-lockup-real{min-height:74px}.onboard-brand .brand-lockup-real img{width:110px;max-height:80px}
+.training-photo-fallback{background:#ececea!important;color:#252525!important;border:1px solid rgba(0,0,0,.08);text-align:center;padding:8px}
+.training-photo-fallback strong{font-size:10px;line-height:1.25;max-width:100%;padding:0 6px}.training-photo-fallback span{font-size:7px;letter-spacing:.08em;color:#666!important}
+.dark .training-photo-fallback{background:#232323!important;color:#fff!important;border-color:#444}.dark .training-photo-fallback span{color:#c5c5c5!important}
+.movement-timer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;margin:8px 0 12px 35px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px}
+.movement-timer>div:first-child{display:flex;align-items:center;gap:9px}.movement-timer>div:first-child strong{font:16px 'DM Mono',monospace;font-variant-numeric:tabular-nums}
+.movement-timer-actions{display:flex;gap:7px}.movement-timer-actions button{padding:7px 9px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--ink);font-size:8px;font-weight:750}
+.dark .movement-timer{background:#1b1b1b;border-color:#424242}.dark .movement-timer-actions button{background:#252525;border-color:#494949;color:#f4f4f4}
+@media(max-width:640px){.brand-lockup-real img{width:112px;max-height:88px}.mobile-header .brand-lockup-real img{width:88px;max-height:53px}.onboard-brand .brand-lockup-real img{width:100px}.movement-timer{margin-left:0;align-items:flex-start;flex-direction:column}.movement-timer-actions{width:100%}.movement-timer-actions button{flex:1;min-height:34px}}
