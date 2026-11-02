@@ -205,3 +205,9 @@
   .runner-exercise-photo,.runner-exercise-photo.training-photo-fallback{width:58px;height:56px}
   .library-photo,.library-photo.training-photo-fallback{width:64px;height:58px}
 }
+
+/* Tabs stay compact on wide layouts and become a fixed 3-column grid on phones. */
+.view-tabs{display:flex;align-items:center;justify-content:flex-start;gap:6px;width:max-content;max-width:100%;flex-wrap:wrap}
+.view-tabs button{flex:0 0 auto;padding-left:14px;padding-right:14px}
+.training-mode-tabs{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+@media(max-width:620px){.view-tabs{display:grid;width:100%;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}.view-tabs button{width:100%;flex:initial;padding:10px 4px 12px;font-size:9px}}

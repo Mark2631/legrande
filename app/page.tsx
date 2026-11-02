@@ -380,21 +380,78 @@ HOME_PROGRAMS.forEach(program => {
 
 const PHOTO_URLS = {
   gym: {
-    man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
-    woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
-    neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
+    general: {
+      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
+    },
+    legs: {
+      man: 'https://images.unsplash.com/photo-1744551612249-655d096b9f95?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1662385930032-d9286e02325f?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=1000&q=82'
+    },
+    shoulders: {
+      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
+    },
+    arms: {
+      man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
+    },
+    chest: {
+      man: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1546483875-ad9014c88eba?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=82'
+    },
+    back: {
+      man: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1000&q=82'
+    }
   },
   home: {
-    man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
-    woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
-    neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+    general: {
+      man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+    },
+    push: {
+      man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+    },
+    legs: {
+      man: 'https://images.unsplash.com/photo-1714646442127-cac6c14a04c7?auto=format&fit=crop&w=1000&q=82',
+      woman: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+    },
+    core: {
+      man: 'https://www.bornfitness.com/wp-content/uploads/2021/06/COVERS-1-1200x1080.png',
+      woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
+      neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+    }
   }
 };
 function exerciseImage(name: string, mode: 'gym' | 'home' = 'gym', gender: Gender = 'prefer_not_to_say') {
   const person = gender === 'man' ? 'man' : gender === 'woman' ? 'woman' : 'neutral';
-  const source = mode === 'home' ? PHOTO_URLS.home : PHOTO_URLS.gym;
-  if (mode === 'home' && /squat|lunge|leg|glute|calf/i.test(name) && person === 'man') return 'https://images.unsplash.com/photo-1714646442127-cac6c14a04c7?auto=format&fit=crop&w=1000&q=82';
-  return source[person];
+  const value = name.toLowerCase();
+  if (mode === 'home') {
+    const category = /sit.?up|crunch|dead bug|bird dog|plank|mountain climber/.test(value) ? 'core'
+      : /squat|lunge|leg|glute|calf/.test(value) ? 'legs'
+        : /push.?up|triceps|push/.test(value) ? 'push' : 'general';
+    return PHOTO_URLS.home[category][person] || PHOTO_URLS.home.general[person];
+  }
+  const category = /squat|lunge|leg press|leg curl|calf|glute|romanian|deadlift/.test(value) ? 'legs'
+    : /lateral raise|shoulder|pike|face pull|reverse fly|snow angel|arm circle/.test(value) ? 'shoulders'
+      : /triceps|pushdown|dip|close-grip|curl|biceps/.test(value) ? 'arms'
+        : /lat|row|superman|bird dog|cat-cow/.test(value) ? 'back'
+          : /chest|bench|push-up|fly/.test(value) ? 'chest' : 'general';
+  return PHOTO_URLS.gym[category][person] || PHOTO_URLS.gym.general[person];
+}
+function programImage(program: Program, mode: 'gym' | 'home' = 'gym', gender: Gender = 'prefer_not_to_say') {
+  return exerciseImage(program.exercises.find(item => item.phase === 'main')?.name || program.exercises[0]?.name || program.focus, mode, gender);
 }
 function TrainingPhoto({ name, mode = 'gym', gender = 'prefer_not_to_say', alt, className }: {
   name: string; mode?: 'gym' | 'home'; gender?: Gender; alt: string; className?: string
@@ -533,6 +590,22 @@ function gymCooldownForFocus(focus: string): ProgramExercise[] {
     { name: 'Child’s pose', muscle: 'Back', equipment: 'Floor mat', sets: 1, reps: 30, rest: 0, cue: 'Sit your hips toward your heels and reach forward.', phase: 'cooldown', durationSec: 30 }
   ];
 }
+function personaliseGymProgram(base: Program, level: Level, goal: Goal): Program {
+  const main = base.exercises.filter(item => item.phase !== 'warmup' && item.phase !== 'cooldown').map(exercise => {
+    const compound = /press|squat|deadlift|row|pulldown|leg press|split squat/i.test(exercise.name);
+    const sets = level === 'beginner' ? 2 : level === 'advanced' ? Math.max(3, Math.round(exercise.sets * 1.15)) : Math.max(2, Math.min(3, exercise.sets));
+    const reps = goal === 'strength' ? (compound ? 6 : 8) : goal === 'general_fitness' ? 10 : compound ? 8 : 12;
+    const rest = goal === 'strength' ? (compound ? 150 : 90) : compound ? 90 : 60;
+    return { ...exercise, phase: 'main' as const, sets, reps: level === 'beginner' ? Math.min(10, reps) : reps, rest };
+  });
+  return {
+    ...base, level,
+    description: base.description + ' Set volume and rest periods are adapted to your goal and experience.',
+    duration: base.duration + 10,
+    exercises: [...gymWarmupForFocus(base.focus), ...main, ...gymCooldownForFocus(base.focus)]
+  };
+}
+
 function getProgramForDay(date: Date, target: number, level: Level = 'beginner', splitStyle: SplitStyle = 'focused', goal: Goal = 'build_muscle') {
   const day = (date.getDay() + 6) % 7;
   const schedules: Record<SplitStyle, Record<number, { days: number[]; ids: string[] }>> = {
@@ -545,14 +618,8 @@ function getProgramForDay(date: Date, target: number, level: Level = 'beginner',
   if (index < 0) return null;
   const base = PROGRAMS.find(program => program.id === schedule.ids[index]);
   if (!base) return null;
-  const main = base.exercises.map(exercise => {
-    const compound = /press|squat|deadlift|row|pulldown|leg press|split squat/i.test(exercise.name);
-    const sets = level === 'beginner' ? 2 : level === 'advanced' ? Math.max(3, Math.round(exercise.sets * 1.15)) : Math.max(2, Math.min(3, exercise.sets));
-    const reps = goal === 'strength' ? (compound ? 6 : 8) : goal === 'general_fitness' ? 10 : (compound ? 8 : 12);
-    const rest = goal === 'strength' ? (compound ? 150 : 90) : (compound ? 90 : 60);
-    return { ...exercise, phase: 'main' as const, sets, reps: level === 'beginner' ? Math.min(10, reps) : reps, rest };
-  });
-  return { ...base, level, description: base.description + ' Set volume and rest periods are adapted to your stated goal and experience.', duration: base.duration + 10, exercises: [...gymWarmupForFocus(base.focus), ...main, ...gymCooldownForFocus(base.focus)] };
+  return personaliseGymProgram(base, level, goal);
+}
 }
 
 function getHomeProgramForDay(date: Date, profile: Profile) {
@@ -1081,7 +1148,7 @@ function TrainingPage({ store, onStart, onRepeat, initialView = 'plans', gender 
         const completed = store.sessions.filter(session => session.title === program.title).length;
         return <article className={selected ? 'program-card recommended-program' : 'program-card'} key={program.id}>
           <div className="program-art"><TrainingPhoto name={program.exercises[0]?.name || program.title} mode="gym" gender={gender} alt={program.title + ' gym training'} /><span>{program.focus.toUpperCase()}</span><div className="art-number">{String(gymPrograms.indexOf(program) + 1).padStart(2, '0')}</div></div>
-          <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(program)}>{selected ? 'Start today' : 'Start'} <ArrowRight size={15} /></button></div></div>
+          <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(personaliseGymProgram(program, store.profile.level, store.profile.goal))}>{selected ? 'Start today' : 'Start'} <ArrowRight size={15} /></button></div></div>
         </article>;
       })}</div>
     </>}
