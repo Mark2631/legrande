@@ -1270,7 +1270,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, 
     onChange({ ...workout, exercises: [...workout.exercises, {
       id: makeId(), name: item.name, muscle: item.muscle, equipment: item.equipment,
       cue: item.cue, restSeconds: item.rest, phase: item.phase || 'main', durationSec: item.durationSec,
-      sets: Array.from({ length: item.sets }, () ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
+      sets: Array.from({ length: item.sets }, () => ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
     }] })
     setShowPicker(false)
   }
