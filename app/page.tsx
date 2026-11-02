@@ -291,7 +291,7 @@ const HOME_PROGRAMS: Program[] = [
   },
   {
     id: 'home-arms', title: 'Arms at home', focus: 'Biceps · Triceps · No equipment', level: 'beginner', duration: 20, mode: 'home',
-    description: 'Arm-focused bodyweight movements. Use a sturdy chair only for the optional dip.',
+    description: 'Arm-focused bodyweight movements using push-up variations and self-resisted curls. No weights or machines.',
     exercises: [
       { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 15, cue: 'Warm the shoulders with small, steady circles.' },
       { name: 'Close-grip push-up', muscle: 'Triceps', equipment: 'Floor mat', sets: 3, reps: 6, rest: 60, cue: 'Keep hands just inside shoulder width and lower slowly. Use an incline to make it easier.' },
@@ -1162,7 +1162,7 @@ function TrainingPage({ store, onStart, onRepeat, initialView = 'plans', gender 
       </div>
       <div className="duration-filter"><span>SESSION LENGTH</span>{[10, 20, 30].map(value => <button key={value} className={homeDuration === value ? 'selected' : ''} onClick={() => setHomeDuration(value)}>{value} min</button>)}</div>
       <div className="home-program-grid">{homePrograms.map(program => <article className="home-program-card" key={program.id}>
-        <div className="home-program-image"><TrainingPhoto name={program.exercises[0]?.name || program.title} mode="home" gender={gender} alt={program.title + ' bodyweight workout'} /><span>{program.duration} MIN</span></div>
+        <div className="home-program-image"><TrainingPhoto name={program.exercises.find(item => item.phase === 'main')?.name || program.exercises[0]?.name || program.title} mode="home" gender={gender} alt={program.title + ' bodyweight workout'} /><span>{program.duration} MIN</span></div>
         <div className="home-program-copy"><span className="eyebrow">BODYWEIGHT PLAN</span><h3>{program.title}</h3><p>{program.description}</p><div className="home-move-list">{program.exercises.slice(0, 4).map(exercise => <span key={exercise.name}>{exercise.name}</span>)}</div><button className="button primary-button" onClick={() => onStart(program)}>Start home workout <ArrowRight size={15} /></button></div>
       </article>)}</div>
     </>}
