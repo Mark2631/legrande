@@ -407,7 +407,6 @@ function TrainingPhoto({ name, mode = 'gym', gender = 'prefer_not_to_say', alt, 
 }
 
 const NAV_ITEMS = [
-const NAV_ITEMS = [
   { id: 'today' as Tab, label: 'Today', icon: Home },
   { id: 'train' as Tab, label: 'Train', icon: Dumbbell },
   { id: 'progress' as Tab, label: 'Progress', icon: TrendingUp },
