@@ -1,1 +1,19 @@
-{"name":"LeGrande Fitness Center","short_name":"LeGrande","start_url":"/","display":"standalone","background_color":"#f7f6f3","theme_color":"#1a1a1a","description":"Your personal training companion.","icons":[{"src":"/logo.svg","sizes":"192x192","type":"image/svg+xml","purpose":"any maskable"},{"src":"/logo.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "LeGrande Fitness Center — Member Space",
+  "short_name": "LeGrande",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f6f4",
+  "theme_color": "#111111",
+  "description": "Your LeGrande gym and home workout plans, progress and training history.",
+  "icons": [
+    {
+      "src": "/legrande-logo.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
