@@ -620,7 +620,6 @@ function getProgramForDay(date: Date, target: number, level: Level = 'beginner',
   if (!base) return null;
   return personaliseGymProgram(base, level, goal);
 }
-}
 
 function getHomeProgramForDay(date: Date, profile: Profile) {
   const gymPlan = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
