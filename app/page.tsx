@@ -380,24 +380,63 @@ HOME_PROGRAMS.forEach(program => {
   }));
 });
 
-// Exercise photos from free-exercise-db (Unlicense). Only direct exercise matches are shown.
+// Exact movement references: curated Unsplash photographs where the pose is a direct match,
+// plus Free Exercise DB step-by-step photos for the remaining movements.
+const UNSPLASH_MOVEMENT_IMAGES: Record<string, string> = {
+  'barbell bench press': 'https://images.unsplash.com/photo-1598575435247-2572be03bf6d?auto=format&fit=crop&w=1200&q=82',
+  'lat pulldown': 'https://images.unsplash.com/photo-1745329532611-03818982ed31?auto=format&fit=crop&w=1200&q=82',
+  'back squat': 'https://images.unsplash.com/photo-1683147778229-e8479ec374ff?auto=format&fit=crop&w=1200&q=82',
+  'goblet squat': 'https://images.unsplash.com/photo-1635863823065-6188cb5c2358?auto=format&fit=crop&w=1200&q=82',
+  'leg press': 'https://images.unsplash.com/photo-1744551612249-655d096b9f95?auto=format&fit=crop&w=1200&q=82',
+  'dumbbell shoulder press': 'https://images.unsplash.com/photo-1772450014048-ec6dc611be2b?auto=format&fit=crop&w=1200&q=82',
+  'seated dumbbell shoulder press': 'https://images.unsplash.com/photo-1772450014048-ec6dc611be2b?auto=format&fit=crop&w=1200&q=82',
+  'dumbbell curl': 'https://images.unsplash.com/photo-1704223523321-7b0b44a1a0b9?auto=format&fit=crop&w=1200&q=82',
+  'hammer curl': 'https://images.unsplash.com/photo-1733517300852-6320e112261d?auto=format&fit=crop&w=1200&q=82',
+  'treadmill walk': 'https://images.unsplash.com/photo-1675026482188-8102367ecc16?auto=format&fit=crop&w=1200&q=82',
+  'walking, treadmill': 'https://images.unsplash.com/photo-1675026482188-8102367ecc16?auto=format&fit=crop&w=1200&q=82',
+  'standard push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
+  'push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
+  'wide push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
+  'plank': 'https://images.unsplash.com/photo-1758599878908-596c2042f563?auto=format&fit=crop&w=1200&q=82',
+  'plank shoulder tap': 'https://images.unsplash.com/photo-1635863870541-286925d89030?auto=format&fit=crop&w=1200&q=82',
+  'standing hamstring stretch': 'https://images.unsplash.com/photo-1701826510609-b8d07deca0d4?auto=format&fit=crop&w=1200&q=82',
+  'hamstring stretch': 'https://images.unsplash.com/photo-1701826510609-b8d07deca0d4?auto=format&fit=crop&w=1200&q=82',
+  'cross-body shoulder stretch': 'https://images.unsplash.com/photo-1770026136858-6f12670dd131?auto=format&fit=crop&w=1200&q=82',
+  'overhead stretch': 'https://images.unsplash.com/photo-1770026136858-6f12670dd131?auto=format&fit=crop&w=1200&q=82'
+};
 const EXERCISE_IMAGES: Record<string, string> = {
-  'barbell bench press': 'Barbell_Bench_Press_-_Medium_Grip', 'machine chest press': 'Leverage_Chest_Press',
-  'incline dumbbell press': 'Incline_Dumbbell_Press', 'lat pulldown': 'Wide-Grip_Lat_Pulldown', 'seated cable row': 'Seated_Cable_Rows',
-  'leg press': 'Leg_Press', 'back squat': 'Barbell_Full_Squat', 'goblet squat': 'Goblet_Squat',
-  'dumbbell romanian deadlift': 'Romanian_Deadlift', 'romanian deadlift': 'Romanian_Deadlift', 'seated leg curl': 'Seated_Leg_Curl',
-  'standing calf raise': 'Standing_Calf_Raises', 'dumbbell shoulder press': 'Dumbbell_Shoulder_Press', 'seated dumbbell shoulder press': 'Dumbbell_Shoulder_Press',
-  'dumbbell lateral raise': 'Side_Lateral_Raise', 'cable face pull': 'Face_Pull', 'dumbbell curl': 'Seated_Dumbbell_Curl', 'hammer curl': 'Hammer_Curls',
+  'machine chest press': 'Leverage_Chest_Press', 'incline dumbbell press': 'Incline_Dumbbell_Press',
+  'seated cable row': 'Seated_Cable_Rows', 'bent over barbell row': 'Bent_Over_Barbell_Row',
+  'close-grip front lat pulldown': 'Close-Grip_Front_Lat_Pulldown',
+  'dumbbell romanian deadlift': 'Romanian_Deadlift', 'romanian deadlift': 'Romanian_Deadlift',
+  'seated leg curl': 'Seated_Leg_Curl', 'standing calf raise': 'Standing_Calf_Raises',
+  'dumbbell lateral raise': 'Side_Lateral_Raise', 'cable face pull': 'Face_Pull',
+  'seated dumbbell curl': 'Seated_Dumbbell_Curl', 'hammer curl': 'Hammer_Curls',
   'cable triceps pushdown': 'Triceps_Pushdown', 'overhead cable triceps extension': 'Cable_Rope_Overhead_Triceps_Extension',
-  'dumbbell fly': 'Dumbbell_Flyes', 'cable chest fly': 'Cable_Crossover', 'leg extension': 'Leg_Extensions', 'hip thrust': 'Barbell_Hip_Thrust',
-  'plank': 'Plank', 'dead bug': 'Dead_Bug', 'treadmill walk': 'Walking_Treadmill', 'bodyweight squat': 'Bodyweight_Squat',
-  'incline push-up': 'Incline_Push-Up', 'incline close-grip push-up': 'Incline_Push-Up_Close-Grip', 'close-grip push-up': 'Incline_Push-Up_Close-Grip',
-  'arm circles': 'Arm_Circles', 'sit-up': 'Sit-Up', 'mountain climber': 'Mountain_Climbers', 'superman hold': 'Superman',
-  'dumbbell split squat': 'Split_Squat_with_Dumbbells', 'reverse dumbbell fly': 'Dumbbell_Lying_Rear_Lateral_Raise',
-  'calf press on the leg press machine': 'Calf_Press_On_The_Leg_Press_Machine'
+  'overhead dumbbell triceps extension': 'Standing_Dumbbell_Triceps_Extension',
+  'dumbbell fly': 'Dumbbell_Flyes', 'cable chest fly': 'Cable_Crossover',
+  'leg extension': 'Leg_Extensions', 'hip thrust': 'Barbell_Hip_Thrust',
+  'dead bug': 'Dead_Bug', 'stationary bike': 'Bicycling_Stationary', 'bicycling, stationary': 'Bicycling_Stationary',
+  'bodyweight squat': 'Bodyweight_Squat', 'incline push-up': 'Incline_Push-Up',
+  'incline close-grip push-up': 'Incline_Push-Up_Close-Grip', 'close-grip push-up': 'Incline_Push-Up_Close-Grip',
+  'arm circles': 'Arm_Circles', 'sit-up': 'Sit-Up', 'mountain climber': 'Mountain_Climbers',
+  'superman hold': 'Superman', 'dumbbell split squat': 'Split_Squat_with_Dumbbells',
+  'reverse dumbbell fly': 'Dumbbell_Lying_Rear_Lateral_Raise', 'calf press on the leg press machine': 'Calf_Press_On_The_Leg_Press_Machine',
+  'standing quadriceps stretch': 'Quad_Stretch', 'standing quad stretch': 'Quad_Stretch',
+  'standing hamstring and calf stretch': 'Standing_Hamstring_and_Calf_Stretch',
+  'calf wall stretch': 'Calf_Stretch_Hands_Against_Wall', 'child’s pose': 'Childs_Pose', "child's pose": 'Childs_Pose',
+  'cross body shoulder stretch': 'Shoulder_Stretch', 'overhead triceps stretch': 'Triceps_Stretch',
+  'biceps wall stretch': 'Standing_Biceps_Stretch', 'wrist flexor stretch': 'Kneeling_Forearm_Stretch',
+  'doorway chest stretch': 'Chest_And_Front_Of_Shoulder_Stretch', 'chest opener stretch': 'Chest_And_Front_Of_Shoulder_Stretch',
+  'cat-cow': 'Cat_Stretch', 'cat stretch': 'Cat_Stretch',
+  'upper back stretch': 'Upper_Back_Stretch', 'lat stretch on bench': 'Upper_Back_Stretch',
+  'standing quadriceps stretch': 'Quad_Stretch', 'standing calf raise': 'Standing_Calf_Raises'
 };
 function exerciseImage(name: string) {
-  const slug = EXERCISE_IMAGES[name.trim().toLowerCase()];
+  const key = name.trim().toLowerCase();
+  const curated = UNSPLASH_MOVEMENT_IMAGES[key];
+  if (curated) return curated;
+  const slug = EXERCISE_IMAGES[key];
   return slug ? 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/' + slug + '/0.jpg' : '';
 }
 function programImage(program: Program) {
@@ -409,7 +448,7 @@ function TrainingPhoto({ name, alt, className }: { name: string; mode?: 'gym' | 
   const src = exerciseImage(name);
   useEffect(() => { setFailed(false); }, [src]);
   if (!src || failed) return <div className={'training-photo-fallback ' + (className || '')} role='img' aria-label={alt}><Dumbbell size={20} /><strong>{name}</strong><span>PHOTO GUIDE UNAVAILABLE</span></div>;
-  return <img src={src} alt={alt} className={className || ''} loading='lazy' onError={() => setFailed(true)} />;
+  return <img src={src} alt={alt} className={className || ''} loading='lazy' decoding='async' onError={() => setFailed(true)} />;
 }
 const NAV_ITEMS = [
   { id: 'today' as Tab, label: 'Today', icon: Home },
@@ -869,7 +908,7 @@ export default function Page() {
           </button>
         </div>
         <main className="page-content">
-          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onTrain={() => { setTrainView('plans'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
+          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onTrain={() => { setTrainView('plans'); setTab('train'); }} onHome={() => { setTrainView('home'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
           {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} initialView={trainView} gender={store.profile.gender} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
           {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
@@ -1027,7 +1066,10 @@ function getNextGymSession(profile: Profile, sessions: Session[], from = new Dat
   }
   return null;
 }
-function Dashboard({ store, onStart, onTrain, pausedWorkout, onResume }: { store: Store; onStart: (program: Program) => void; onTrain: () => void; pausedWorkout: ActiveWorkout | null; onResume: (workout: ActiveWorkout) => void }) {
+function Dashboard({ store, onStart, onTrain, onHome, pausedWorkout, onResume }: {
+  store: Store; onStart: (program: Program) => void; onTrain: () => void; onHome: () => void;
+  pausedWorkout: ActiveWorkout | null; onResume: (workout: ActiveWorkout) => void
+}) {
   const today = new Date();
   const firstName = store.profile.name.trim().split(/\s+/)[0];
   const hour = today.getHours();
@@ -1038,50 +1080,64 @@ function Dashboard({ store, onStart, onTrain, pausedWorkout, onResume }: { store
   const week = weekSessions(store.sessions);
   const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100);
   const streak = currentStreak(store.sessions, store.profile.weeklyTarget);
-  const recent = store.sessions.slice(0, 3);
+  const recent = store.sessions.slice(0, 2);
   const packageActive = isPackageActive(store.profile);
-  const currentPlan = next?.program || null;
-  const planGroups = currentPlan ? [
-    { key: 'warmup', title: '01 · Warm-up', items: currentPlan.exercises.filter(item => item.phase === 'warmup') },
-    { key: 'main', title: '02 · Main workout', items: currentPlan.exercises.filter(item => item.phase === 'main') },
-    { key: 'cooldown', title: '03 · Stretch & cool-down', items: currentPlan.exercises.filter(item => item.phase === 'cooldown') }
-  ] : [];
+  const packageEnd = store.profile.packageEnd ? new Date(store.profile.packageEnd + 'T12:00:00') : null;
+  const daysLeft = packageEnd ? Math.max(0, Math.ceil((packageEnd.getTime() - new Date(todayKey + 'T12:00:00').getTime()) / 86400000)) : 0;
+  const mainMoves = next?.program.exercises.filter(item => item.phase !== 'warmup' && item.phase !== 'cooldown') || [];
+  const heroMove = mainMoves[0]?.name || 'Lat pulldown';
+  const schedule = Array.from({ length: 7 }, (_, index) => {
+    const date = weekStart(today); date.setDate(date.getDate() + index);
+    const key = dateKey(date);
+    const done = store.sessions.some(session => session.date === key && (session.mode || 'gym') === 'gym');
+    const plan = getProgramForDay(date, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+    return { date, key, done, plan, isToday: key === todayKey };
+  });
   return <>
-    <div className="welcome-header"><div><span className="eyebrow">{formatDate(today).toUpperCase()}</span><h1>{greeting}, {firstName}.</h1><p>Consistency is the plan. Show up, do the work, repeat.</p></div><div className="welcome-mark"><span>LF</span><small>MEMBER</small></div></div>
-    {!packageActive && <section className="package-expired-panel"><span className="eyebrow">MEMBERSHIP ENDED</span><h2>Your {packageName(store.profile.packageType).toLowerCase()} has ended.</h2><p>Your workout history is saved. Select a new package in Profile when you are ready to return.</p><button className="button primary-button" onClick={onTrain}>View gym schedule <ArrowRight size={15} /></button></section>}
-    {packageActive && <section className="package-status-strip"><div><span className="eyebrow">ACTIVE MEMBERSHIP</span><strong>{packageName(store.profile.packageType)}</strong><small>Valid through {packageEndLabel(store.profile)}</small></div><span className="package-status-mark">ACTIVE</span></section>}
-    {next && <section className="hero-card"><div className="hero-overlay" /><div className="hero-content">
-      <span className="hero-kicker"><i /> {next.isToday ? 'TODAY’S GYM WORKOUT' : 'YOUR NEXT GYM SESSION'}</span>
-      <p className="hero-label">{formatDayLabel(next.date).toUpperCase()} · {next.program.focus.toUpperCase()}</p>
-      <h2>{next.program.title}</h2><p>{next.program.description}</p>
-      <p className="hero-session-time"><Clock3 size={14} /> {formatSessionWindow(store.profile.sessionStartTime)} · {next.program.duration} min training block</p>
-      {next.isToday && todayDone && <p className="session-window-note">Today’s session is complete. Your next gym day is already queued.</p>}
-      <button className="button primary-button" onClick={() => onStart(next.program)}><Dumbbell size={17} /> View next gym workout</button>
-    </div><div className="hero-side-note"><span>LEGRANDE / {String(next.date.getDate()).padStart(2, '0')}</span><strong>SHOW UP<br />WITH PURPOSE.</strong></div></section>}
-    {packageActive && !next && <section className="rest-day-panel"><span className="eyebrow">{todayDone ? 'SESSION COMPLETE' : 'REST DAY'}</span><h2>{todayDone && store.profile.packageType === 'daily' ? 'You have completed your daily session.' : 'No gym session is scheduled now.'}</h2><p>{store.profile.packageType === 'daily' ? 'Your daily pass remains active until midnight. Come back with a fresh pass when you are ready to train again.' : 'Rest days are part of the plan. Your next scheduled gym session will appear here automatically.'}</p></section>}
-    {pausedWorkout && <div className="resume-banner"><div><span className="eyebrow">SESSION PAUSED</span><strong>{pausedWorkout.title}</strong><small>Your sets are saved on this device.</small></div><button className="button primary-button" onClick={() => onResume(pausedWorkout)}>Resume workout <ArrowRight size={15} /></button></div>}
-    <div className="metric-row">
-      <div className="metric-card"><div className="metric-icon"><CalendarDays size={17} /></div><span>Sessions this week</span><strong>{week.length}<small> / {store.profile.weeklyTarget}</small></strong><div className="metric-progress"><i style={{ width: progress + '%' }} /></div></div>
-      <div className="metric-card"><div className="metric-icon"><Flame size={17} /></div><span>Consistency streak</span><strong>{streak}<small> {streak === 1 ? 'week' : 'weeks'}</small></strong><p>{streak ? 'You have a rhythm. Protect it.' : 'Start with one good week.'}</p></div>
-      <div className="metric-card"><div className="metric-icon"><TrendingUp size={17} /></div><span>Total sessions</span><strong>{store.sessions.length}<small> logged</small></strong><p>Every session has a place.</p></div>
-      <div className="metric-card"><div className="metric-icon"><Zap size={17} /></div><span>Training volume</span><strong>{Math.round(totalVolume(store.sessions)).toLocaleString()}<small> kg</small></strong><p>Completed sets only.</p></div>
+    <header className='dashboard-welcome'>
+      <div><span className='eyebrow'>{formatDate(today).toUpperCase()}</span><h1>{greeting}, <em>{firstName}</em>.</h1><p>Your next session is ready when you are.</p></div>
+      <div className='dashboard-member-badge'><span className='dashboard-avatar'>{firstName.slice(0, 1).toUpperCase()}</span><div><strong>{store.profile.name}</strong><small>{store.profile.level} member</small></div></div>
+    </header>
+    <div className='dashboard-membership-line'>
+      <span className={packageActive ? 'membership-dot active' : 'membership-dot'} />
+      <span>{packageActive ? packageName(store.profile.packageType) + ' · ' + daysLeft + (daysLeft === 1 ? ' day left' : ' days left') : 'Membership expired'}</span>
+      <span className='membership-line-spacer' />
+      <span className='membership-state'>{packageActive ? 'ACTIVE' : 'RENEW'}</span>
     </div>
-    <div className="content-grid dashboard-focus-grid">
-      <section className="panel week-panel"><div className="section-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h2>This week</h2></div><span className="subtle">{week.length} of {store.profile.weeklyTarget} sessions</span></div>
-        <div className="week-days">{Array.from({ length: 7 }, (_, index) => { const day = weekStart(today); day.setDate(day.getDate() + index); const key = dateKey(day); const done = store.sessions.some(session => session.date === key); const isToday = key === todayKey; return <div key={key} className={isToday ? 'week-day today' : 'week-day'}><span>{day.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span><i className={done ? 'done' : ''}>{done ? <Check size={13} /> : day.getDate()}</i><small>{done ? 'Done' : isToday ? 'Today' : day.toLocaleDateString('en', { weekday: 'short' })}</small></div>; })}</div>
-        <div className="week-footer"><span>{Math.max(0, store.profile.weeklyTarget - week.length)} sessions left this week</span><div className="progress-track"><i style={{ width: progress + '%' }} /></div></div>
-      </section>
-      <section className="panel today-plan-panel"><div className="section-heading"><div><span className="eyebrow">YOUR NEXT WORKOUT</span><h2>{currentPlan ? currentPlan.focus : 'Training calendar'}</h2></div><span className="subtle">{currentPlan ? currentPlan.exercises.length + ' movements' : 'No session ready'}</span></div>
-        {currentPlan ? <div className="today-phase-groups">{planGroups.map(group => group.items.length ? <section className="today-phase-group" key={group.key}><div className="today-phase-heading"><strong>{group.title}</strong><span>{group.items.length} movements</span></div><div className="today-plan-list">{group.items.map((exercise, index) => <article className="today-plan-item" key={exercise.name}><TrainingPhoto name={exercise.name} mode="gym" gender={store.profile.gender} alt={exercise.name + ' gym movement'} /><div><span className="today-plan-number">{String(index + 1).padStart(2, '0')} · {exercise.equipment}</span><strong>{exercise.name}</strong><p>{exercise.cue}</p><small>{exercise.durationSec ? (exercise.durationSec >= 60 ? Math.round(exercise.durationSec / 60 * 10) / 10 + ' min' : exercise.durationSec + ' sec') : exercise.sets + ' sets · ' + exercise.reps + ' reps'}{exercise.rest ? ' · ' + exercise.rest + 's rest' : ''}</small></div></article>)}</div></section> : null)}</div> : <div className="rest-day-note"><strong>Your next session appears automatically.</strong><p>Open Train to review your gym schedule and separately available no-equipment home plans.</p><button className="text-action" onClick={onTrain}>View gym schedule <ArrowRight size={14} /></button></div>}
-        <button className="text-action today-plan-action" onClick={onTrain}>Open gym schedule <ArrowRight size={14} /></button>
-      </section>
+    {!packageActive && <section className='dashboard-renew-note'><div><strong>Your membership has ended.</strong><span>Your workout history is saved. Renew in Profile to start another session.</span></div></section>}
+    {pausedWorkout && <div className='resume-banner'><div><span className='eyebrow'>SESSION PAUSED</span><strong>{pausedWorkout.title}</strong><small>Your sets are saved on this device.</small></div><button className='button primary-button' onClick={() => onResume(pausedWorkout)}>Resume session <ArrowRight size={15} /></button></div>}
+    {next ? <section className='dashboard-hero'>
+      <TrainingPhoto name={heroMove} className='dashboard-hero-photo' mode='gym' gender={store.profile.gender} alt={heroMove + ' exercise in the gym'} />
+      <div className='dashboard-hero-shade' />
+      <div className='dashboard-hero-copy'>
+        <span className='dashboard-hero-kicker'><i /> {next.isToday ? (todayDone ? 'TODAY’S SESSION COMPLETE' : 'TODAY’S GYM SESSION') : 'YOUR NEXT GYM SESSION'}</span>
+        <p className='dashboard-hero-date'>{formatDayLabel(next.date).toUpperCase()} · {next.program.focus.toUpperCase()}</p>
+        <h2>{next.program.title}</h2>
+        <p className='dashboard-hero-description'>{next.program.description}</p>
+        <div className='dashboard-hero-meta'><span><Clock3 size={14} /> {next.program.duration} min</span><span><Dumbbell size={14} /> {mainMoves.length} movements</span><span><Activity size={14} /> {store.profile.level}</span></div>
+        <div className='dashboard-hero-actions'><button className='button dashboard-start-button' onClick={() => onStart(next.program)}><Dumbbell size={16} /> {next.isToday && todayDone ? 'Review next workout' : 'Start workout'} <ArrowRight size={15} /></button><span>{formatSessionWindow(store.profile.sessionStartTime)}</span></div>
+      </div>
+      <div className='dashboard-hero-index'>LEGRANDE <b>FITNESS</b></div>
+    </section> : <section className='dashboard-rest-card'><div className='dashboard-rest-icon'><CheckCircle2 size={20} /></div><div><span className='eyebrow'>{todayDone ? 'SESSION COMPLETE' : 'RECOVERY DAY'}</span><h2>{todayDone ? 'Good work today.' : 'No gym session is scheduled today.'}</h2><p>{store.profile.packageType === 'daily' ? 'Your daily pass is for today. Choose another pass when you return.' : 'Rest is part of a consistent training plan. Your next scheduled session appears automatically.'}</p></div></section>}
+    <div className='dashboard-stat-grid'>
+      <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><CalendarDays size={16} /></span><div><small>THIS WEEK</small><strong>{week.length}<i> / {store.profile.weeklyTarget}</i></strong><span>sessions completed</span></div><div className='dashboard-stat-track'><i style={{ width: progress + '%' }} /></div></article>
+      <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Flame size={16} /></span><div><small>CONSISTENCY</small><strong>{streak}<i> {streak === 1 ? 'week' : 'weeks'}</i></strong><span>current training streak</span></div><div className='dashboard-stat-gold-line' /></article>
+      <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Trophy size={16} /></span><div><small>TRAINING HISTORY</small><strong>{store.sessions.length}<i> total</i></strong><span>sessions recorded</span></div><div className='dashboard-stat-gold-line' /></article>
     </div>
-    <section className="section-block"><div className="section-heading"><div><span className="eyebrow">RECENT TRAINING</span><h2>Recent sessions</h2></div><span className="subtle">{store.sessions.length} logged</span></div>
-      {recent.length ? <div className="recent-list">{recent.map(session => <div className="recent-item" key={session.id}><div className="recent-symbol"><Dumbbell size={17} /></div><div className="recent-main"><strong>{session.title}</strong><span>{session.focus} · {session.date}</span></div><div className="recent-data"><strong>{prettyDuration(session.durationMin)}</strong><span>{session.exercises.length} movements</span></div><Check size={17} className="recent-check" /></div>)}</div> : <div className="empty-state"><strong>No workouts yet.</strong><span>Your training history will build here after your first completed session.</span><button className="button secondary-button" onClick={onTrain}>Explore gym workouts</button></div>}
+    <section className='dashboard-week-panel'>
+      <div className='dashboard-section-heading'><div><span className='eyebrow'>YOUR TRAINING RHYTHM</span><h2>This week</h2></div><span className='dashboard-week-count'>{week.length} / {store.profile.weeklyTarget} sessions</span></div>
+      <div className='dashboard-week-days'>{schedule.map(item => <div key={item.key} className={['dashboard-week-day', item.done ? 'done' : '', item.isToday ? 'today' : '', item.plan ? 'planned' : ''].filter(Boolean).join(' ')}><span>{item.date.toLocaleDateString('en-KE', { weekday: 'short' })}</span><i>{item.done ? <Check size={13} /> : item.plan ? <Dumbbell size={12} /> : '·'}</i><small>{item.done ? 'Done' : item.isToday ? 'Today' : item.plan ? item.plan.focus.split(' · ')[0] : 'Rest'}</small></div>)}</div>
+    </section>
+    <div className='dashboard-quick-actions'>
+      <button onClick={onHome}><span><Home size={17} /></span><div><strong>Home workout</strong><small>No equipment needed</small></div><ChevronRight size={16} /></button>
+      <button onClick={onTrain}><span><Plus size={17} /></span><div><strong>Build your session</strong><small>Add movements you want to train</small></div><ChevronRight size={16} /></button>
+    </div>
+    <section className='dashboard-recent-section'>
+      <div className='dashboard-section-heading'><div><span className='eyebrow'>KEEP YOUR MOMENTUM</span><h2>Recent sessions</h2></div><span className='dashboard-week-count'>{store.sessions.length} logged</span></div>
+      {recent.length ? <div className='dashboard-recent-list'>{recent.map(session => <article className='dashboard-recent-item' key={session.id}><span className='dashboard-recent-icon'><Dumbbell size={16} /></span><div><strong>{session.title}</strong><small>{session.focus} · {new Date(session.date + 'T12:00:00').toLocaleDateString('en-KE', { day: 'numeric', month: 'short' })}</small></div><span className='dashboard-recent-duration'>{prettyDuration(session.durationMin)}</span></article>)}</div> : <div className='dashboard-empty-recent'>Your first completed session will appear here.</div>}
     </section>
   </>;
 }
-
 function TrainingPage({ store, onStart, onRepeat, initialView = 'plans', gender }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void; initialView?: 'plans' | 'home' | 'library'; gender: Gender }) {
   const [view, setView] = useState<'plans' | 'home' | 'library'>(initialView);
   const [focus, setFocus] = useState('All');
