@@ -5,8 +5,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#090d0b",
-  "theme_color": "#090d0b",
+  "background_color": "#f6f6f4",
+  "theme_color": "#111111",
   "description": "Your training, progress and recovery companion at LeGrande Fitness Center.",
   "icons": [
     { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }

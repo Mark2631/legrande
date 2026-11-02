@@ -71,7 +71,7 @@ const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
   name: '', goal: 'build_muscle', level: 'beginner', weeklyTarget: 4,
-  units: 'metric', themeDark: true, onboardingComplete: false,
+  units: 'metric', themeDark: false, onboardingComplete: false,
   heightCm: null, proteinTarget: 0
 }
 const emptyStore: Store = {
@@ -273,6 +273,26 @@ function latestSet(sessions: Session[], exerciseName: string) {
   }
   return null
 }
+function programFromSession(session: Session, level: Level): Program {
+  return {
+    id: 'repeat-' + session.id,
+    title: 'Repeat · ' + session.title,
+    focus: session.focus,
+    level,
+    duration: Math.max(20, session.durationMin),
+    description: 'A copy of your last completed session. Previous loads will be prefilled where available.',
+    exercises: session.exercises.map(exercise => ({
+      name: exercise.name,
+      muscle: exercise.muscle,
+      equipment: exercise.equipment,
+      sets: Math.max(1, exercise.sets.length),
+      reps: exercise.sets.find(set => set.done)?.reps || 10,
+      rest: exercise.restSeconds,
+      cue: exercise.cue || 'Use a controlled range of motion and a load you can manage.'
+    }))
+  }
+}
+
 function buildWorkout(program: Program, sessions: Session[]): ActiveWorkout {
   return {
     id: makeId(), title: program.title, focus: program.focus, startedAt: Date.now(), notes: '',
@@ -413,6 +433,10 @@ export default function Page() {
     setPausedWorkout(null)
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(next))
   }
+  const repeatSession = (session: Session) => {
+    if (!store) return
+    startWorkout(programFromSession(session, store.profile.level))
+  }
   const saveActive = (next: ActiveWorkout) => {
     setActiveWorkout(next)
     setPausedWorkout(null)
@@ -471,6 +495,7 @@ export default function Page() {
       workout={activeWorkout}
       sessions={store.sessions}
       units={store.profile.units}
+      themeDark={store.profile.themeDark}
       onChange={saveActive}
       onFinish={finishWorkout}
       onExit={() => {
@@ -511,7 +536,7 @@ export default function Page() {
         </div>
         <main className="page-content">
           {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onWeight={() => setModal('weight')} onTrain={() => setTab('train')} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
-          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} />}
+          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
           {tab === 'fuel' && <FuelPage store={store} updateDaily={updateDaily} />}
           {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
@@ -674,7 +699,7 @@ function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume 
   </>
 }
 
-function TrainingPage({ store, onStart }: { store: Store; onStart: (program: Program) => void }) {
+function TrainingPage({ store, onStart, onRepeat }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void }) {
   const [view, setView] = useState<'plans' | 'library'>('plans')
   const [focus, setFocus] = useState('All')
   const [query, setQuery] = useState('')
@@ -684,6 +709,7 @@ function TrainingPage({ store, onStart }: { store: Store; onStart: (program: Pro
     <div className="page-intro"><div><span className="eyebrow">THE TRAINING FLOOR</span><h1>Train with purpose.</h1><p>Choose a session, log your working sets, and make your next session a little more informed.</p></div><div className="intro-stamp"><Dumbbell size={23} /><span>LF / TRAIN</span></div></div>
     <div className="view-tabs"><button className={view === 'plans' ? 'selected' : ''} onClick={() => setView('plans')}>Training plans</button><button className={view === 'library' ? 'selected' : ''} onClick={() => setView('library')}>Exercise library</button></div>
     {view === 'plans' ? <>
+      {store.sessions[0] && <div className="repeat-card"><div className="repeat-mark"><RotateCcw size={18} /></div><div className="repeat-copy"><span className="eyebrow">PICK UP WHERE YOU LEFT OFF</span><strong>{store.sessions[0].title}</strong><small>Last trained {store.sessions[0].date} · {store.sessions[0].exercises.length} movements</small></div><button className="button primary-button" onClick={() => onRepeat(store.sessions[0])}>Repeat session <ArrowRight size={15} /></button></div>}
       <div className="section-heading"><div><span className="eyebrow">BUILT AROUND YOUR WEEK</span><h2>Your suggested schedule</h2></div><span className="subtle">{store.profile.weeklyTarget} training days</span></div>
       <div className="schedule-card">
         <div className="schedule-intro"><span>YOUR GOAL</span><strong>{store.profile.goal.replace('_', ' ')}</strong><span>EXPERIENCE</span><strong>{store.profile.level}</strong></div>
@@ -699,7 +725,17 @@ function TrainingPage({ store, onStart }: { store: Store; onStart: (program: Pro
           <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(program)}>Start <ArrowRight size={15} /></button></div></div>
         </article>
       })}</div>
-      <div className="training-reminder"><Info size={17} /><p>Start with loads you can control. The suggested routines are starting templates, not personalised medical or coaching advice. Adjust exercises and range of motion to your experience and available equipment.</p></div>
+      <section className="research-panel">
+        <div className="research-heading"><div><span className="eyebrow">EVIDENCE, NOT GYM MYTHS</span><h2>How to make the work count</h2></div><span className="research-source">ACSM · 2026</span></div>
+        <div className="research-points">
+          <article><strong>01 / Show up consistently</strong><p>Train the major muscle groups at least twice a week. A repeatable schedule is more useful than a perfect plan you abandon.</p></article>
+          <article><strong>02 / Build volume gradually</strong><p>For muscle growth, around 10 weekly sets per muscle group is a useful longer-term reference—not a starting requirement. Build towards more work as you adapt.</p></article>
+          <article><strong>03 / Leave room to recover</strong><p>You do not need to reach failure on every set. Controlled reps with a few good repetitions left can be productive.</p></article>
+          <article><strong>04 / Progress with evidence</strong><p>Use your previous loads and reps. When the work feels controlled and repeatable, add a small amount of load or one rep—not both at once.</p></article>
+        </div>
+        <p className="research-footnote">Based on the 2026 American College of Sports Medicine resistance-training position stand. General guidance for healthy adults; adjust for your ability, health and coaching advice.</p>
+      </section>
+      <div className="training-reminder"><Info size={17} /><p>These routines are flexible templates, not medical prescriptions. Choose movements you can perform comfortably and ask a qualified trainer to check unfamiliar technique.</p></div>
     </> : <>
       <div className="library-toolbar"><div className="search-field"><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search movements or equipment" /></div><span className="subtle">{filteredExercises.length} movements</span></div>
       <div className="filter-chips">{categories.map(category => <button key={category} className={focus === category ? 'selected' : ''} onClick={() => setFocus(category)}>{category}</button>)}</div>
@@ -709,8 +745,8 @@ function TrainingPage({ store, onStart }: { store: Store; onStart: (program: Pro
   </>
 }
 
-function WorkoutRunner({ workout, sessions, units, onChange, onFinish, onExit }: {
-  workout: ActiveWorkout; sessions: Session[]; units: Units;
+function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish, onExit }: {
+  workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean;
   onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
 }) {
   const [now, setNow] = useState(Date.now())
@@ -729,7 +765,7 @@ function WorkoutRunner({ workout, sessions, units, onChange, onFinish, onExit }:
     if (!restUntil) return
     if (restUntil <= Date.now()) { setRestUntil(null); return }
     const timer = window.setInterval(() => {
-      if (restUntil <= Date.now()) { setRestUntil(null); window.clearInterval(timer) }
+      if (restUntil <= Date.now()) { if ('vibrate' in navigator) navigator.vibrate([180, 80, 180]); setRestUntil(null); window.clearInterval(timer) }
     }, 500)
     return () => window.clearInterval(timer)
   }, [restUntil])
@@ -755,7 +791,7 @@ function WorkoutRunner({ workout, sessions, units, onChange, onFinish, onExit }:
     setShowPicker(false)
   }
   const pickerItems = EXERCISE_LIBRARY.filter(item => item.name.toLowerCase().includes(search.toLowerCase()) || item.muscle.toLowerCase().includes(search.toLowerCase()))
-  return <div className="workout-screen">
+  return <div className={themeDark ? 'workout-screen dark-workout' : 'workout-screen'}>
     <header className="workout-topbar"><button className="icon-action" onClick={onExit}><ArrowLeft size={18} /></button><div><strong>LEGRANDE / SESSION</strong><span>{workout.focus}</span></div><div className="session-clock"><Clock3 size={15} /> {formatTime(elapsed)}</div></header>
     <div className="workout-container">
       <div className="workout-heading"><div><span className="eyebrow">IN PROGRESS · {new Date(workout.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} START</span><h1>{workout.title}</h1><p>Focus on clean reps. Record what you actually do.</p></div><div className="workout-counter"><strong>{completed}<small> / {total}</small></strong><span>SETS DONE</span></div></div>
@@ -768,6 +804,15 @@ function WorkoutRunner({ workout, sessions, units, onChange, onFinish, onExit }:
           <div className="active-exercise-head"><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
           <p className="form-cue">{exercise.cue}</p>
           {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
+          {(() => {
+            const previousSession = sessions.find(session => session.exercises.some(item => item.name === exercise.name))
+            const previousExercise = previousSession?.exercises.find(item => item.name === exercise.name)
+            const completedPrevious = previousExercise?.sets.filter(set => set.done) || []
+            if (!completedPrevious.length) return null
+            const completedEverySet = previousExercise?.sets.length === completedPrevious.length
+            const averageRir = completedPrevious.reduce((sum, set) => sum + set.rir, 0) / completedPrevious.length
+            return <div className="progression-note"><Target size={14} /><span>{completedEverySet && averageRir >= 2 ? 'You completed every set last time with some reps in reserve. If technique stayed consistent, consider a small load increase or one extra rep.' : 'Aim to match your last clean set first. Add load only when you can keep the same controlled technique.'}</span></div>
+          })()}
           <div className="set-table">
             <div className="set-table-head"><span>SET</span><span>{units === 'metric' ? 'KG' : 'LB'}</span><span>REPS</span><span>RIR</span><span>DONE</span></div>
             {exercise.sets.map((set, setIndex) => <div className={set.done ? 'set-row completed' : 'set-row'} key={set.id}>

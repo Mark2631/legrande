@@ -1,4 +1,4 @@
-const CACHE = 'legrande-member-v2'
+const CACHE = 'legrande-member-v3'
 const CORE = ['/manifest.json', '/logo.svg']
 
 self.addEventListener('install', event => {
@@ -24,8 +24,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(request)
         .then(response => {
-          const copy = response.clone()
-          caches.open(CACHE).then(cache => cache.put('/', copy))
+          if (response.ok) {
+            const copy = response.clone()
+            caches.open(CACHE).then(cache => cache.put('/', copy))
+          }
           return response
         })
         .catch(() => caches.match('/'))

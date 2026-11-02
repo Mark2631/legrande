@@ -6,9 +6,9 @@ export const metadata: Metadata = {
   description: 'Your training, progress and recovery companion at LeGrande Fitness Center.',
   manifest: '/manifest.json',
   applicationName: 'LeGrande Fitness Center',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'LeGrande' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'LeGrande' },
   icons: { icon: '/logo.svg', apple: '/logo.svg' },
-  themeColor: '#090d0b'
+  themeColor: '#f6f6f4'
 }
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
