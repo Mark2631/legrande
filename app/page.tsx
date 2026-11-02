@@ -178,7 +178,7 @@ const PROGRAMS: Program[] = [
       { name: 'Dumbbell Romanian deadlift', muscle: 'Hamstrings', equipment: 'Dumbbells', sets: 3, reps: 10, rest: 100, cue: 'Push hips back and keep a soft bend in the knees.' },
       { name: 'Dumbbell split squat', muscle: 'Quads', equipment: 'Dumbbells', sets: 2, reps: 10, rest: 90, cue: 'Hold a stable stance and lower under control.' },
       { name: 'Seated leg curl', muscle: 'Hamstrings', equipment: 'Machine', sets: 2, reps: 12, rest: 75, cue: 'Avoid bouncing through the movement.' },
-      { name: 'Plank', muscle: 'Core', equipment: 'Bodyweight', sets: 2, reps: 30, rest: 45, cue: 'Keep your hips level and breathe steadily.' }
+      { name: 'Plank', muscle: 'Core', equipment: 'Bodyweight', sets: 2, reps: 30, rest: 45, cue: 'Keep your hips level and breathe steadily.', durationSec: 30 }
     ]
   }
   ,{
@@ -232,7 +232,7 @@ const EXERCISE_LIBRARY = [
   { name: 'Leg extension', muscle: 'Quads', equipment: 'Machine', sets: 3, reps: 12, rest: 60, cue: 'Move smoothly and avoid forceful locking.' },
   { name: 'Hip thrust', muscle: 'Glutes', equipment: 'Barbell', sets: 3, reps: 10, rest: 90, cue: 'Keep ribs down and pause briefly at the top.' },
   { name: 'Hanging knee raise', muscle: 'Core', equipment: 'Bodyweight', sets: 3, reps: 10, rest: 60, cue: 'Control the movement; avoid swinging.' },
-  { name: 'Stationary bike', muscle: 'Conditioning', equipment: 'Cardio', sets: 1, reps: 10, rest: 0, cue: 'Start at a manageable pace and build gradually.' }
+  { name: 'Stationary bike', muscle: 'Conditioning', equipment: 'Cardio', sets: 1, reps: 10, rest: 0, cue: 'Start at a manageable pace and build gradually.', durationSec: 600 }
 ].filter((exercise, index, array) => array.findIndex(item => item.name === exercise.name) === index)
 
 
@@ -577,7 +577,21 @@ function getProgramForDay(date: Date, target: number, level: Level = 'beginner',
   const index = schedule.days.indexOf(day);
   if (index < 0) return null;
   const base = PROGRAMS.find(program => program.id === schedule.ids[index]);
-  return base ? personaliseGymProgram(base, level, goal) : null;
+  if (!base) return null;
+  let sessionBase = base;
+  if (splitStyle === 'focused' && target === 4 && base.id === 'shoulders') {
+    const armProgram = PROGRAMS.find(program => program.id === 'arms');
+    const biceps = armProgram?.exercises.find(item => item.muscle === 'Biceps');
+    const triceps = armProgram?.exercises.find(item => item.muscle === 'Triceps');
+    sessionBase = {
+      ...base,
+      title: 'Shoulders & arms',
+      focus: 'Shoulders · Biceps · Triceps',
+      description: 'Your four-day focused split combines shoulder work with direct biceps and triceps accessories.',
+      exercises: [...base.exercises, ...(biceps ? [biceps] : []), ...(triceps ? [triceps] : [])]
+    };
+  }
+  return personaliseGymProgram(sessionBase, level, goal);
 }
 function getHomeProgramForDay(date: Date, profile: Profile) {
   const gymPlan = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
@@ -1198,7 +1212,7 @@ function HomeWorkoutPlayer({ workout, themeDark, gender, onChange, onFinish, onE
       {finished ? <section className="home-player-complete"><div className="home-player-complete-mark"><Check size={30} /></div><span className="eyebrow">ALL MOVEMENTS COMPLETE</span><h1>Good work.</h1><p>Your home session is ready to be saved to your training history.</p><button className="button primary-button" onClick={onFinish}>Save completed workout <CheckCircle2 size={17} /></button></section> : <>
         <div className="home-player-stage">
           {phase === 'move' ? <TrainingPhoto name={current.name} mode="home" gender={gender} alt={current.name + ' bodyweight movement reference'} /> : <div className="home-player-rest-art"><Timer size={46} /><span>RESET YOUR POSITION</span></div>}
-          <div className="home-player-stage-label">{phase === 'rest' ? 'BREATHE · NEXT MOVE COMING UP' : 'MOVE ' + String(index + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0')}</div>
+          <div className="home-player-stage-label">{phase === 'rest' ? 'REST · RESET YOUR BREATH' : 'MOVE ' + String(index + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0')}</div>
         </div>
         <div className="home-player-timer"><strong>{phase === 'rest' ? 'REST' : current.name}</strong><span>{String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}</span><small>{phase === 'rest' ? 'Get ready for the next movement' : 'Work at a controlled pace · target ' + (current.sets[0]?.reps ?? 0) + ' reps'}</small></div>
         {phase === 'move' && <div className="home-player-instruction"><span className="eyebrow">HOW TO DO IT</span><p>{current.cue}</p><div><span>{current.equipment}</span><span>{current.muscle}</span></div></div>}
@@ -1255,8 +1269,8 @@ function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, 
     const previous = latestSet(sessions, item.name)
     onChange({ ...workout, exercises: [...workout.exercises, {
       id: makeId(), name: item.name, muscle: item.muscle, equipment: item.equipment,
-      cue: item.cue, restSeconds: item.rest,
-      sets: Array.from({ length: item.sets }, () => ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
+      cue: item.cue, restSeconds: item.rest, phase: item.phase || 'main', durationSec: item.durationSec,
+      sets: Array.from({ length: item.sets }, () ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
     }] })
     setShowPicker(false)
   }

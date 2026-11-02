@@ -149,11 +149,6 @@
 .home-player-instruction p{font-size:12px;line-height:1.65;margin:7px 0 12px}
 .home-player-instruction>div{display:flex;gap:7px;flex-wrap:wrap}
 .home-player-instruction>div span{font-size:9px;color:#888;border:1px solid rgba(128,128,128,.3);border-radius:99px;padding:5px 8px}
-.home-player-next{display:flex;align-items:center;gap:11px;margin-top:12px;padding:11px;border-radius:13px;background:rgba(128,128,128,.1)}
-.home-player-next>img{width:46px;height:42px;object-fit:cover;border-radius:8px}
-.home-player-next>div{display:grid;gap:4px;flex:1}
-.home-player-next strong{font-size:11px}.home-player-next span{font-size:9px;color:#888}
-.home-player-next>svg{opacity:.6}
 .home-player-controls{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:16px}
 .home-player-controls .button{min-height:47px}
 .home-player-complete{min-height:65vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:13px}
@@ -185,7 +180,6 @@
 .program-art>.training-photo-fallback,.home-program-image>.training-photo-fallback{position:absolute;inset:0;width:100%;height:100%}
 .home-workout-hero>.training-photo-fallback{width:100%;height:100%;min-height:210px}
 .today-plan-item>.training-photo-fallback{width:82px;height:76px;border-radius:11px;flex-shrink:0}
-.home-player-stage>.training-photo-fallback{width:100%;height:100%}.home-player-next>.training-photo-fallback{width:46px;height:42px;border-radius:8px}
 .home-equipment-note{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);margin:0 0 16px}
 .home-equipment-note strong{font-size:10px}.home-equipment-note span{font-size:9px;color:var(--muted);line-height:1.55}
 .training-mode-tabs{gap:5px;margin:0 0 22px}.training-mode-tabs button{flex:1;min-width:0;text-align:center;padding:11px 7px 13px;font-size:10px;white-space:normal;line-height:1.25}
