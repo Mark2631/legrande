@@ -1,1 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120"><circle cx="60" cy="60" r="58" fill="#1a1a1a"/><path d="M25 45c0-13 8-22 18-22m52 22c0-13-8-22-18-22M37 42v37c0 9 7 16 16 16h14c9 0 16-7 16-16V42" fill="none" stroke="#2ba89a" stroke-width="7" stroke-linecap="round"/><path d="M47 55h26M47 70h26" stroke="#f7f6f3" stroke-width="6" stroke-linecap="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="LeGrande Fitness Center LF">
+  <circle cx="60" cy="60" r="58" fill="#101610" stroke="#78984b" stroke-width="2"/>
+  <path d="M27 61V51a33 33 0 0 1 66 0v10" fill="none" stroke="#b8ed50" stroke-width="7" stroke-linecap="round"/>
+  <rect x="20" y="56" width="17" height="31" rx="8.5" fill="#b8ed50"/>
+  <rect x="83" y="56" width="17" height="31" rx="8.5" fill="#b8ed50"/>
+  <path d="M44 49v37h28" fill="none" stroke="#f1f4ee" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M76 49H57l-4 17h19l-4 20H48" fill="none" stroke="#f1f4ee" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
