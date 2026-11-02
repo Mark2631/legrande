@@ -85,7 +85,7 @@ const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
   name: '', phone: '', gender: 'man', bodyweightKg: null, memberType: 'new',
-  packageType: 'daily', packageStart: '', packageEnd: '', sessionStartTime: '08:00', splitStyle: 'focused',
+  packageType: 'daily', packageStart: '', packageEnd: '', sessionStartTime: '08:00', splitStyle: 'upper_lower',
   goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
 }
 const emptyStore: Store = {
@@ -160,13 +160,15 @@ const PROGRAMS: Program[] = [
     ]
   },
   {
-    id: 'upper', title: 'Upper body', focus: 'Chest · Back · Arms', level: 'intermediate', duration: 50,
-    description: 'A practical upper-body session for a four-day split.',
+    id: 'upper', title: 'Upper body', focus: 'Chest · Back · Shoulders · Arms', level: 'intermediate', duration: 60,
+    description: 'A balanced upper-body session. In a four-day Upper / Lower plan, repeat it twice weekly with recovery between sessions.',
     exercises: [
       { name: 'Barbell bench press', muscle: 'Chest', equipment: 'Barbell', sets: 3, reps: 8, rest: 120, cue: 'Stay braced and keep each repetition consistent.' },
+      { name: 'Incline dumbbell press', muscle: 'Upper chest', equipment: 'Dumbbells', sets: 3, reps: 10, rest: 90, cue: 'Keep your shoulder blades supported. Lower the dumbbells slowly to a comfortable depth.' },
       { name: 'Seated cable row', muscle: 'Back', equipment: 'Cable', sets: 3, reps: 10, rest: 90, cue: 'Keep your torso steady as you row.' },
       { name: 'Lat pulldown', muscle: 'Lats', equipment: 'Cable', sets: 3, reps: 10, rest: 90, cue: 'Avoid shrugging and pull with your elbows.' },
       { name: 'Dumbbell lateral raise', muscle: 'Shoulders', equipment: 'Dumbbells', sets: 2, reps: 12, rest: 60, cue: 'Use a load you can control without swinging.' },
+      { name: 'Dumbbell curl', muscle: 'Biceps', equipment: 'Dumbbells', sets: 2, reps: 12, rest: 60, cue: 'Keep your elbows near your sides. Lower each dumbbell without swinging.' },
       { name: 'Cable triceps pushdown', muscle: 'Triceps', equipment: 'Cable', sets: 2, reps: 12, rest: 60, cue: 'Keep your elbows close to your body.' }
     ]
   },
