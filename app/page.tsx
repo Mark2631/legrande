@@ -852,46 +852,61 @@ function Brand() {
 function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplete: (profile: Profile, firstLog?: WeightLog) => void; initialProfile?: Profile }) {
   const [step, setStep] = useState(1);
   const [profile, setProfile] = useState<Profile>({ ...defaultProfile, ...initialProfile });
-  const [weight, setWeight] = useState('');
-  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState(initialProfile.bodyweightKg ? String(displayWeight(initialProfile.bodyweightKg, initialProfile.units)) : '');
+  const [height, setHeight] = useState(initialProfile.heightCm ? String(initialProfile.heightCm) : '');
   const update = (patch: Partial<Profile>) => setProfile(current => ({ ...current, ...patch }));
-  const validPhone = profile.phone.replace(/\D/g, '').length >= 9;
-  const canContinue = step === 1 ? profile.name.trim().length > 1 && validPhone : step === 2 ? (!weight || Number(weight) > 0) && (!height || Number(height) > 0) : true;
+  const validPhone = isValidKenyanPhone(profile.phone);
+  const canContinue = step === 1 ? profile.name.trim().length > 1 && validPhone
+    : step === 2 ? (!weight || Number(weight) > 0) && (!height || Number(height) > 0)
+      : true;
   const finish = () => {
     const firstLog: WeightLog | undefined = Number(weight) > 0 ? { date: dateKey(), kg: toKg(weight, profile.units) } : undefined;
+    const packageWindow = createPackageWindow(profile.packageType);
     onComplete({
       ...profile,
-      heightCm: Number(height) > 0 ? (profile.units === 'imperial' ? Number(height) * 2.54 : Number(height)) : null,
+      phone: normalizeKenyanPhone(profile.phone),
+      bodyweightKg: firstLog?.kg ?? profile.bodyweightKg,
+      heightCm: Number(height) > 0 ? (profile.units === 'imperial' ? Number(height) * 2.54 : Number(height)) : profile.heightCm,
+      ...packageWindow,
       onboardingComplete: true,
       goal: profile.goal || 'build_muscle'
     }, firstLog);
   };
   return <div className="onboarding-screen">
     <div className="onboarding-panel">
-      <div className="onboard-brand"><Brand /><span className="onboard-step">STEP {step} OF 3</span></div>
-      <div className="onboard-progress"><i style={{ width: (step / 3 * 100) + '%' }} /></div>
+      <div className="onboard-brand"><Brand /><span className="onboard-step">STEP {step} OF 4</span></div>
+      <div className="onboard-progress"><i style={{ width: (step / 4 * 100) + '%' }} /></div>
       {step === 1 && <>
         <span className="eyebrow">LEGRANDE MEMBER REGISTRATION</span>
         <h1>Your training starts <em>here.</em></h1>
-        <p className="onboard-lede">Set up your member profile. Current members can bring their existing training style; new members get a guided schedule.</p>
+        <p className="onboard-lede">Set up your member profile. Current members can bring their existing routine; new members get a guided schedule.</p>
         <label className="field-label">Full name<input autoFocus value={profile.name} onChange={event => update({ name: event.target.value })} placeholder="Your name" maxLength={60} /></label>
-        <label className="field-label">Phone number<input type="tel" inputMode="tel" autoComplete="tel" value={profile.phone} onChange={event => update({ phone: event.target.value })} placeholder="+254 7XX XXX XXX" maxLength={18} /></label>
+        <label className="field-label">Kenyan mobile number</label>
+        <div className="ke-phone-field"><span>+254</span><input type="tel" inputMode="numeric" autoComplete="tel-national" value={phoneNationalPart(profile.phone)} onChange={event => update({ phone: normalizeKenyanPhone(event.target.value) })} placeholder="7XX XXX XXX" maxLength={9} /></div>
+        <p className="phone-help">Enter nine digits after +254, starting with 7 or 1.</p>
         <span className="field-label">Your membership</span>
         <div className="member-type-grid">
           <button type="button" className={profile.memberType === 'existing' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'existing' })}><strong>Current member</strong><span>I already train at LeGrande.</span></button>
-          <button type="button" className={profile.memberType === 'new' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'new' })}><strong>Joining now</strong><span>I'm setting up my first routine.</span></button>
+          <button type="button" className={profile.memberType === 'new' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'new' })}><strong>Joining now</strong><span>I am setting up my first routine.</span></button>
         </div>
-        {!validPhone && profile.phone.length > 0 && <p className="input-hint">Enter a complete phone number, including the area code.</p>}
+        {profile.phone.length > 4 && !validPhone && <p className="input-hint">Enter all nine digits after +254. Mobile numbers start with 7 or 1.</p>}
       </>}
       {step === 2 && <>
-        <span className="eyebrow">YOUR TRAINING GOAL</span>
-        <h1>What are you <em>working towards?</em></h1>
-        <p className="onboard-lede">We use this to set sensible starting repetitions, rest times and training volume.</p>
+        <span className="eyebrow">YOUR MEMBER PROFILE</span>
+        <h1>Build a plan around <em>you.</em></h1>
+        <p className="onboard-lede">Your goal, experience and baseline help us set a sensible starting plan. Bodyweight is not used to guess a dumbbell weight.</p>
+        <span className="field-label">Gender</span>
+        <div className="gender-choice-grid">
+          {([
+            ['woman', 'Woman'], ['man', 'Man'], ['non_binary', 'Non-binary'], ['prefer_not_to_say', 'Prefer not to say']
+          ] as [Gender, string][]).map(([value, label]) => <button type="button" key={value} className={profile.gender === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ gender: value })}><strong>{label}</strong></button>)}
+        </div>
+        <span className="field-label">Main goal</span>
         <div className="choice-grid">
           {[
-            ['build_muscle', 'Build muscle', 'Size, balance and control'],
-            ['strength', 'Get stronger', 'Track the lifts that matter'],
-            ['fat_loss', 'Lose body fat', 'Build repeatable habits'],
+            ['build_muscle', 'Build muscle', 'Size, strength and control'],
+            ['strength', 'Get stronger', 'Progress your main lifts'],
+            ['fat_loss', 'Lose body fat', 'Maintain strength and consistency'],
             ['general_fitness', 'Feel fitter', 'Fitness for everyday life']
           ].map(([value, title, description]) => <button type="button" key={value} className={profile.goal === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ goal: value as Goal })}><strong>{title}</strong><span>{description}</span></button>)}
         </div>
@@ -902,56 +917,103 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
           <button type="button" className={profile.level === 'advanced' ? 'selected' : ''} onClick={() => update({ level: 'advanced' })}>Advanced</button>
         </div>
         <div className="baseline-grid">
-          <label className="field-label">Weight <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={weight} onChange={event => setWeight(event.target.value)} placeholder="kg" min="1" /></label>
-          <label className="field-label">Height <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={height} onChange={event => setHeight(event.target.value)} placeholder="cm" min="1" /></label>
+          <label className="field-label">Current weight <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={weight} onChange={event => setWeight(event.target.value)} placeholder={profile.units === 'metric' ? 'kg' : 'lb'} min="1" /></label>
+          <label className="field-label">Height <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={height} onChange={event => setHeight(event.target.value)} placeholder={profile.units === 'metric' ? 'cm' : 'inches'} min="1" /></label>
         </div>
         <div className="segmented"><button type="button" className={profile.units === 'metric' ? 'selected' : ''} onClick={() => update({ units: 'metric' })}>Metric · kg</button><button type="button" className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => update({ units: 'imperial' })}>Imperial · lb</button></div>
       </>}
       {step === 3 && <>
-        <span className="eyebrow">YOUR WEEKLY SPLIT</span>
-        <h1>{profile.memberType === 'existing' ? 'Match your current' : 'Build your first'} <em>routine.</em></h1>
-        <p className="onboard-lede">{profile.memberType === 'existing' ? 'Choose the structure closest to your current gym routine. You can edit it later in Profile.' : 'We will keep each day focused so you are not moving randomly between machines and muscle groups.'}</p>
-        <div className="target-picker"><div><strong>Training days per week</strong><span>Choose a realistic schedule. Rest days are built in.</span></div><div className="stepper"><button type="button" onClick={() => update({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button type="button" onClick={() => update({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
+        <span className="eyebrow">YOUR TRAINING WEEK</span>
+        <h1>Make the week <em>work for you.</em></h1>
+        <p className="onboard-lede">Choose your training rhythm. Your gym sessions are prepared automatically, with rest days built into the plan.</p>
+        <div className="target-picker"><div><strong>Gym days per week</strong><span>Choose a sustainable schedule.</span></div><div className="stepper"><button type="button" onClick={() => update({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button type="button" onClick={() => update({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
         <div className="split-choice-grid">
           <button type="button" className={profile.splitStyle === 'focused' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'focused' })}><strong>Focused muscle days</strong><span>Chest · Back · Legs · Shoulders · Arms</span></button>
           <button type="button" className={profile.splitStyle === 'ppl' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'ppl' })}><strong>Push / Pull / Legs</strong><span>Pressing · Pulling · Lower body</span></button>
           <button type="button" className={profile.splitStyle === 'upper_lower' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'upper_lower' })}><strong>Upper / Lower</strong><span>Alternate upper-body and leg sessions</span></button>
         </div>
-        <div className="split-preview"><strong>Your week at a glance</strong><span>{profile.weeklyTarget === 3 ? 'Push · Pull · Legs' : profile.weeklyTarget === 4 ? 'Chest · Back · Legs · Shoulders' : profile.weeklyTarget === 5 ? 'Chest · Back · Legs · Shoulders · Arms' : 'Push · Pull · Legs · Push · Pull · Legs'}</span></div>
-        <p className="privacy-line"><ShieldCheck size={16} /> Profile details and workout logs stay in this browser preview.</p>
+        <label className="field-label">Preferred gym start time<input type="time" value={profile.sessionStartTime} onChange={event => update({ sessionStartTime: event.target.value })} /></label>
+        <div className="split-preview"><strong>Your usual session window</strong><span>{formatSessionWindow(profile.sessionStartTime)}</span></div>
+      </>}
+      {step === 4 && <>
+        <span className="eyebrow">LEGRANDE MEMBERSHIP</span>
+        <h1>Choose your <em>package.</em></h1>
+        <p className="onboard-lede">This is a demo selection. The management portal will handle payment and confirm the actual membership dates.</p>
+        <div className="package-choice-grid">
+          {([
+            ['daily', 'Daily', 'One day of access'],
+            ['weekly', 'Weekly', '7 consecutive days'],
+            ['monthly', 'Monthly', '30 days in this preview'],
+            ['semester', 'Full semester', '120 days in this preview']
+          ] as [PackageType, string, string][]).map(([value, title, description]) => <button type="button" key={value} className={profile.packageType === value ? 'package-choice selected' : 'package-choice'} onClick={() => update({ packageType: value })}><strong>{title}</strong><span>{description}</span></button>)}
+        </div>
+        <div className="onboard-summary">
+          <div><span>MEMBER</span><strong>{profile.name}</strong></div><div><span>GOAL</span><strong>{profile.goal.replace('_', ' ')}</strong></div>
+          <div><span>EXPERIENCE</span><strong>{profile.level}</strong></div><div><span>TRAINING DAYS</span><strong>{profile.weeklyTarget} / week</strong></div>
+          <div><span>PACKAGE</span><strong>{packageName(profile.packageType)}</strong></div><div><span>GYM WINDOW</span><strong>{formatSessionWindow(profile.sessionStartTime)}</strong></div>
+        </div>
+        <p className="privacy-line"><ShieldCheck size={16} /> Profile details and session history stay in this browser. No payment is taken here.</p>
       </>}
       <div className="onboard-actions">
         {step > 1 && <button className="button quiet" onClick={() => setStep(step - 1)}><ArrowLeft size={16} /> Back</button>}
-        <button className="button primary-button" disabled={!canContinue} onClick={() => step < 3 ? setStep(step + 1) : finish()}>{step === 3 ? 'Create member profile' : 'Continue'} <ArrowRight size={16} /></button>
+        <button className="button primary-button" disabled={!canContinue} onClick={() => step < 4 ? setStep(step + 1) : finish()}>{step === 4 ? 'Create member profile' : 'Continue'} <ArrowRight size={16} /></button>
       </div>
     </div>
-    <div className="onboard-visual"><div className="visual-label">LEGRANDE / TRAINING CULTURE</div><div className="visual-copy"><span>CONSISTENCY OVER INTENSITY.</span><h2>Strong habits.<br /><em>Stronger you.</em></h2><p>Progress is built one good session at a time.</p></div><div className="visual-foot"><span>01 — SHOW UP</span><span>02 — TRAIN WITH FOCUS</span><span>03 — BUILD</span></div></div>
+    <div className="onboard-visual"><div className="visual-label">LEGRANDE / TRAINING CULTURE</div><div className="visual-copy"><span>CONSISTENCY OVER INTENSITY.</span><h2>One plan.<br /><em>Every next rep.</em></h2><p>Know what to do when you walk onto the floor.</p></div><div className="visual-foot"><span>01 — SHOW UP</span><span>02 — TRAIN WITH FOCUS</span><span>03 — BUILD</span></div></div>
   </div>;
 }
 
-function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume }: { store: Store; onStart: (program: Program) => void; onWeight: () => void; onTrain: () => void; pausedWorkout: ActiveWorkout | null; onResume: (workout: ActiveWorkout) => void }) {
+function getNextGymSession(profile: Profile, sessions: Session[], from = new Date()) {
+  if (!isPackageActive(profile, dateKey(from))) return null;
+  const start = new Date(from); start.setHours(12, 0, 0, 0);
+  for (let offset = 0; offset < 14; offset++) {
+    const date = new Date(start); date.setDate(date.getDate() + offset);
+    const key = dateKey(date);
+    if (!isPackageActive(profile, key)) break;
+    let program = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
+    if (!program && profile.packageType === 'daily' && offset === 0) {
+      const rotation = ['chest', 'back', 'legs', 'shoulders', 'arms'];
+      const dayIndex = Math.floor(date.getTime() / 86400000) % rotation.length;
+      program = PROGRAMS.find(item => item.id === rotation[dayIndex]) || null;
+    }
+    if (!program) continue;
+    const completed = sessions.some(session => session.date === key && (session.mode || 'gym') === 'gym');
+    if (!completed) return { date, program, isToday: key === dateKey(from) };
+  }
+  return null;
+}
+function Dashboard({ store, onStart, onTrain, pausedWorkout, onResume }: { store: Store; onStart: (program: Program) => void; onTrain: () => void; pausedWorkout: ActiveWorkout | null; onResume: (workout: ActiveWorkout) => void }) {
   const today = new Date();
   const firstName = store.profile.name.trim().split(/\s+/)[0];
   const hour = today.getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const scheduled = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+  const todayKey = dateKey(today);
+  const todayDone = store.sessions.some(session => session.date === todayKey && (session.mode || 'gym') === 'gym');
+  const next = getNextGymSession(store.profile, store.sessions, today);
   const week = weekSessions(store.sessions);
   const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100);
   const streak = currentStreak(store.sessions, store.profile.weeklyTarget);
   const recent = store.sessions.slice(0, 3);
+  const packageActive = isPackageActive(store.profile);
+  const currentPlan = next?.program || null;
+  const planGroups = currentPlan ? [
+    { key: 'warmup', title: '01 · Warm-up', items: currentPlan.exercises.filter(item => item.phase === 'warmup') },
+    { key: 'main', title: '02 · Main workout', items: currentPlan.exercises.filter(item => item.phase === 'main') },
+    { key: 'cooldown', title: '03 · Stretch & cool-down', items: currentPlan.exercises.filter(item => item.phase === 'cooldown') }
+  ] : [];
   return <>
-    <div className="welcome-header"><div><span className="eyebrow">{formatDate(today).toUpperCase()}</span><h1>{greeting}, {firstName}.</h1><p>One focused session at a time. Keep building.</p></div><div className="welcome-mark"><span>LF</span><small>MEMBER</small></div></div>
-    <section className="hero-card">
-      <div className="hero-overlay" />
-      <div className="hero-content">
-        <span className="hero-kicker"><i /> {scheduled ? 'TODAY’S WORKOUT' : 'REST DAY'}</span>
-        <p className="hero-label">{scheduled ? scheduled.focus.toUpperCase() + ' · ' + scheduled.duration + ' MIN' : 'RESET & RETURN STRONGER'}</p>
-        <h2>{scheduled ? scheduled.title : 'Today is a rest day.'}</h2>
-        <p>{scheduled ? scheduled.description : 'Your schedule has no gym session today. Use the home workout area for an optional short movement session, or take the rest day.'}</p>
-        <button className="button primary-button" onClick={scheduled ? () => onStart(scheduled) : onTrain}>{scheduled ? <><Dumbbell size={17} /> Start today’s workout</> : <>Open home workouts <ArrowRight size={17} /></>}</button>
-      </div>
-      <div className="hero-side-note"><span>LEGRANDE / {String(today.getDate()).padStart(2, '0')}</span><strong>TRAIN WITH<br />INTENTION.</strong></div>
-    </section>
+    <div className="welcome-header"><div><span className="eyebrow">{formatDate(today).toUpperCase()}</span><h1>{greeting}, {firstName}.</h1><p>Consistency is the plan. Show up, do the work, repeat.</p></div><div className="welcome-mark"><span>LF</span><small>MEMBER</small></div></div>
+    {!packageActive && <section className="package-expired-panel"><span className="eyebrow">MEMBERSHIP ENDED</span><h2>Your {packageName(store.profile.packageType).toLowerCase()} has ended.</h2><p>Your workout history is saved. Select a new package in Profile when you are ready to return.</p><button className="button primary-button" onClick={onTrain}>View gym schedule <ArrowRight size={15} /></button></section>}
+    {packageActive && <section className="package-status-strip"><div><span className="eyebrow">ACTIVE MEMBERSHIP</span><strong>{packageName(store.profile.packageType)}</strong><small>Valid through {packageEndLabel(store.profile)}</small></div><span className="package-status-mark">ACTIVE</span></section>}
+    {next && <section className="hero-card"><div className="hero-overlay" /><div className="hero-content">
+      <span className="hero-kicker"><i /> {next.isToday ? 'TODAY’S GYM WORKOUT' : 'YOUR NEXT GYM SESSION'}</span>
+      <p className="hero-label">{formatDayLabel(next.date).toUpperCase()} · {next.program.focus.toUpperCase()}</p>
+      <h2>{next.program.title}</h2><p>{next.program.description}</p>
+      <p className="hero-session-time"><Clock3 size={14} /> {formatSessionWindow(store.profile.sessionStartTime)} · {next.program.duration} min training block</p>
+      {next.isToday && todayDone && <p className="session-window-note">Today’s session is complete. Your next gym day is already queued.</p>}
+      <button className="button primary-button" onClick={() => onStart(next.program)}><Dumbbell size={17} /> View next gym workout</button>
+    </div><div className="hero-side-note"><span>LEGRANDE / {String(next.date.getDate()).padStart(2, '0')}</span><strong>SHOW UP<br />WITH PURPOSE.</strong></div></section>}
+    {packageActive && !next && <section className="rest-day-panel"><span className="eyebrow">{todayDone ? 'SESSION COMPLETE' : 'REST DAY'}</span><h2>{todayDone && store.profile.packageType === 'daily' ? 'You have completed your daily session.' : 'No gym session is scheduled now.'}</h2><p>{store.profile.packageType === 'daily' ? 'Your daily pass remains active until midnight. Come back with a fresh pass when you are ready to train again.' : 'Rest days are part of the plan. Your next scheduled gym session will appear here automatically.'}</p></section>}
     {pausedWorkout && <div className="resume-banner"><div><span className="eyebrow">SESSION PAUSED</span><strong>{pausedWorkout.title}</strong><small>Your sets are saved on this device.</small></div><button className="button primary-button" onClick={() => onResume(pausedWorkout)}>Resume workout <ArrowRight size={15} /></button></div>}
     <div className="metric-row">
       <div className="metric-card"><div className="metric-icon"><CalendarDays size={17} /></div><span>Sessions this week</span><strong>{week.length}<small> / {store.profile.weeklyTarget}</small></strong><div className="metric-progress"><i style={{ width: progress + '%' }} /></div></div>
@@ -960,29 +1022,17 @@ function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume 
       <div className="metric-card"><div className="metric-icon"><Zap size={17} /></div><span>Training volume</span><strong>{Math.round(totalVolume(store.sessions)).toLocaleString()}<small> kg</small></strong><p>Completed sets only.</p></div>
     </div>
     <div className="content-grid dashboard-focus-grid">
-      <section className="panel week-panel">
-        <div className="section-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h2>This week</h2></div><span className="subtle">{week.length} of {store.profile.weeklyTarget} sessions</span></div>
-        <div className="week-days">{Array.from({ length: 7 }, (_, index) => {
-          const day = weekStart(today);
-          day.setDate(day.getDate() + index);
-          const key = dateKey(day);
-          const done = store.sessions.some(session => session.date === key);
-          const isToday = key === dateKey(today);
-          return <div key={key} className={isToday ? 'week-day today' : 'week-day'}><span>{day.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span><i className={done ? 'done' : ''}>{done ? <Check size={13} /> : day.getDate()}</i><small>{done ? 'Done' : isToday ? 'Today' : day.toLocaleDateString('en', { weekday: 'short' })}</small></div>;
-        })}</div>
-        <div className="week-footer"><span>{Math.max(0, store.profile.weeklyTarget - week.length)} sessions left to reach your weekly target</span><div className="progress-track"><i style={{ width: progress + '%' }} /></div></div>
+      <section className="panel week-panel"><div className="section-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h2>This week</h2></div><span className="subtle">{week.length} of {store.profile.weeklyTarget} sessions</span></div>
+        <div className="week-days">{Array.from({ length: 7 }, (_, index) => { const day = weekStart(today); day.setDate(day.getDate() + index); const key = dateKey(day); const done = store.sessions.some(session => session.date === key); const isToday = key === todayKey; return <div key={key} className={isToday ? 'week-day today' : 'week-day'}><span>{day.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span><i className={done ? 'done' : ''}>{done ? <Check size={13} /> : day.getDate()}</i><small>{done ? 'Done' : isToday ? 'Today' : day.toLocaleDateString('en', { weekday: 'short' })}</small></div>; })}</div>
+        <div className="week-footer"><span>{Math.max(0, store.profile.weeklyTarget - week.length)} sessions left this week</span><div className="progress-track"><i style={{ width: progress + '%' }} /></div></div>
       </section>
-      <section className="panel today-plan-panel">
-        <div className="section-heading"><div><span className="eyebrow">TODAY’S MOVEMENTS</span><h2>{scheduled ? scheduled.focus : 'Rest day'}</h2></div><span className="subtle">{scheduled ? scheduled.exercises.length + ' exercises' : 'No session planned'}</span></div>
-        {scheduled ? <div className="today-plan-list">{scheduled.exercises.slice(0, 5).map((exercise, index) => <article className="today-plan-item" key={exercise.name}>
-          <img src={exerciseImage(exercise.name)} alt={exercise.name + ' exercise demonstration'} loading="lazy" />
-          <div><span className="today-plan-number">{String(index + 1).padStart(2, '0')} · {exercise.equipment}</span><strong>{exercise.name}</strong><p>{exercise.cue}</p><small>{exercise.sets} sets · {exercise.reps} reps</small></div>
-        </article>)}</div> : <div className="rest-day-note"><strong>Keep the schedule intentional.</strong><p>Rest today, or open Home workouts for a short bodyweight alternative that fits your week.</p><button className="text-action" onClick={onTrain}>Browse home workouts <ArrowRight size={14} /></button></div>}
-        <button className="text-action today-plan-action" onClick={onTrain}>View gym and home schedules <ArrowRight size={14} /></button>
+      <section className="panel today-plan-panel"><div className="section-heading"><div><span className="eyebrow">YOUR NEXT WORKOUT</span><h2>{currentPlan ? currentPlan.focus : 'Training calendar'}</h2></div><span className="subtle">{currentPlan ? currentPlan.exercises.length + ' movements' : 'No session ready'}</span></div>
+        {currentPlan ? <div className="today-phase-groups">{planGroups.map(group => group.items.length ? <section className="today-phase-group" key={group.key}><div className="today-phase-heading"><strong>{group.title}</strong><span>{group.items.length} movements</span></div><div className="today-plan-list">{group.items.map((exercise, index) => <article className="today-plan-item" key={exercise.name}><TrainingPhoto name={exercise.name} mode="gym" gender={store.profile.gender} alt={exercise.name + ' gym movement'} /><div><span className="today-plan-number">{String(index + 1).padStart(2, '0')} · {exercise.equipment}</span><strong>{exercise.name}</strong><p>{exercise.cue}</p><small>{exercise.durationSec ? (exercise.durationSec >= 60 ? Math.round(exercise.durationSec / 60 * 10) / 10 + ' min' : exercise.durationSec + ' sec') : exercise.sets + ' sets · ' + exercise.reps + ' reps'}{exercise.rest ? ' · ' + exercise.rest + 's rest' : ''}</small></div></article>)}</div></section> : null)}</div> : <div className="rest-day-note"><strong>Your next session appears automatically.</strong><p>Open Train to review your gym schedule and separately available no-equipment home plans.</p><button className="text-action" onClick={onTrain}>View gym schedule <ArrowRight size={14} /></button></div>}
+        <button className="text-action today-plan-action" onClick={onTrain}>Open gym schedule <ArrowRight size={14} /></button>
       </section>
     </div>
     <section className="section-block"><div className="section-heading"><div><span className="eyebrow">RECENT TRAINING</span><h2>Recent sessions</h2></div><span className="subtle">{store.sessions.length} logged</span></div>
-      {recent.length ? <div className="recent-list">{recent.map(session => <div className="recent-item" key={session.id}><div className="recent-symbol"><Dumbbell size={17} /></div><div className="recent-main"><strong>{session.title}</strong><span>{session.focus} · {session.date}</span></div><div className="recent-data"><strong>{prettyDuration(session.durationMin)}</strong><span>{session.exercises.length} movements</span></div><Check size={17} className="recent-check" /></div>)}</div> : <div className="empty-state"><strong>No workouts yet.</strong><span>Your training history will build here after your first completed session.</span><button className="button secondary-button" onClick={onTrain}>Explore workout plans</button></div>}
+      {recent.length ? <div className="recent-list">{recent.map(session => <div className="recent-item" key={session.id}><div className="recent-symbol"><Dumbbell size={17} /></div><div className="recent-main"><strong>{session.title}</strong><span>{session.focus} · {session.date}</span></div><div className="recent-data"><strong>{prettyDuration(session.durationMin)}</strong><span>{session.exercises.length} movements</span></div><Check size={17} className="recent-check" /></div>)}</div> : <div className="empty-state"><strong>No workouts yet.</strong><span>Your training history will build here after your first completed session.</span><button className="button secondary-button" onClick={onTrain}>Explore gym workouts</button></div>}
     </section>
   </>;
 }
