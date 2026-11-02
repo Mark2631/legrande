@@ -429,8 +429,7 @@ const EXERCISE_IMAGES: Record<string, string> = {
   'biceps wall stretch': 'Standing_Biceps_Stretch', 'wrist flexor stretch': 'Kneeling_Forearm_Stretch',
   'doorway chest stretch': 'Chest_And_Front_Of_Shoulder_Stretch', 'chest opener stretch': 'Chest_And_Front_Of_Shoulder_Stretch',
   'cat-cow': 'Cat_Stretch', 'cat stretch': 'Cat_Stretch',
-  'upper back stretch': 'Upper_Back_Stretch', 'lat stretch on bench': 'Upper_Back_Stretch',
-  'standing quadriceps stretch': 'Quad_Stretch', 'standing calf raise': 'Standing_Calf_Raises'
+  'upper back stretch': 'Upper_Back_Stretch', 'lat stretch on bench': 'Upper_Back_Stretch'
 };
 function exerciseImage(name: string) {
   const key = name.trim().toLowerCase();
