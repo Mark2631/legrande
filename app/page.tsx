@@ -705,10 +705,20 @@ function TrainingPage({ store, onStart, onRepeat }: { store: Store; onStart: (pr
   const [query, setQuery] = useState('')
   const categories = ['All', 'Full body', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
   const filteredExercises = EXERCISE_LIBRARY.filter(exercise => (focus === 'All' || exercise.muscle.toLowerCase().includes(focus.toLowerCase())) && (exercise.name.toLowerCase().includes(query.toLowerCase()) || exercise.equipment.toLowerCase().includes(query.toLowerCase())))
+  const startCustomSession = () => onStart({
+    id: 'open-gym-session',
+    title: 'My own session',
+    focus: 'Flexible training',
+    level: store.profile.level,
+    duration: 45,
+    description: 'Build a session from the exercise library as you go.',
+    exercises: []
+  })
   return <>
     <div className="page-intro"><div><span className="eyebrow">THE TRAINING FLOOR</span><h1>Train with purpose.</h1><p>Choose a session, log your working sets, and make your next session a little more informed.</p></div><div className="intro-stamp"><Dumbbell size={23} /><span>LF / TRAIN</span></div></div>
     <div className="view-tabs"><button className={view === 'plans' ? 'selected' : ''} onClick={() => setView('plans')}>Training plans</button><button className={view === 'library' ? 'selected' : ''} onClick={() => setView('library')}>Exercise library</button></div>
     {view === 'plans' ? <>
+      <div className="custom-session-row"><div><span className="eyebrow">YOUR ROUTINE, YOUR CALL</span><strong>Prefer to choose every movement?</strong><small>Start empty, then add exercises from the library.</small></div><button className="button secondary-button" onClick={startCustomSession}><Plus size={15} /> Build your own session</button></div>
       {store.sessions[0] && <div className="repeat-card"><div className="repeat-mark"><RotateCcw size={18} /></div><div className="repeat-copy"><span className="eyebrow">PICK UP WHERE YOU LEFT OFF</span><strong>{store.sessions[0].title}</strong><small>Last trained {store.sessions[0].date} · {store.sessions[0].exercises.length} movements</small></div><button className="button primary-button" onClick={() => onRepeat(store.sessions[0])}>Repeat session <ArrowRight size={15} /></button></div>}
       <div className="section-heading"><div><span className="eyebrow">BUILT AROUND YOUR WEEK</span><h2>Your suggested schedule</h2></div><span className="subtle">{store.profile.weeklyTarget} training days</span></div>
       <div className="schedule-card">
@@ -827,6 +837,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish
               }}>{set.done ? <Check size={15} /> : <span />}</button>
             </div>)}
           </div>
+          <p className="set-help"><strong>RIR means “reps in reserve”.</strong> Estimate how many more good-form reps you could have completed. Use 2 if you are unsure; it is a guide, not a test.</p>
           <div className="exercise-actions"><button onClick={() => addSet(exercise)}><Plus size={14} /> Add set</button><button onClick={() => setRestUntil(Date.now() + exercise.restSeconds * 1000)}><Timer size={14} /> Rest {exercise.restSeconds}s</button></div>
         </article>
       })}</div>

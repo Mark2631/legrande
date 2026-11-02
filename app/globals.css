@@ -49,3 +49,12 @@
 .dark .offline-note{color:var(--muted)}
 .dark .avatar{background:var(--surface-3);color:var(--accent)}
 @media(max-width:640px){.repeat-card{align-items:flex-start;flex-wrap:wrap}.repeat-copy{min-width:calc(100% - 60px)}.repeat-card .button{width:100%}.research-points{grid-template-columns:1fr}.progression-note{margin-left:0}}
+
+.custom-session-row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);margin-bottom:16px}
+.custom-session-row>div strong,.custom-session-row>div small{display:block}
+.custom-session-row>div strong{font-size:10px;margin-top:5px}
+.custom-session-row>div small{font-size:8px;color:var(--muted);margin-top:3px}
+.custom-session-row .button{flex-shrink:0}
+.set-help{font-size:8px;line-height:1.55;color:var(--muted);margin:8px 0 8px 35px}
+.set-help strong{color:var(--ink)}
+@media(max-width:640px){.custom-session-row{align-items:flex-start;flex-direction:column}.custom-session-row .button{width:100%}.set-help{margin-left:0}}
