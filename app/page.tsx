@@ -496,9 +496,9 @@ function getHomeProgramForDay(date: Date, profile: Profile) {
   if (!gymPlan) return null;
   const id = /leg|lower/i.test(gymPlan.focus) ? 'home-legs'
     : /back|pull/i.test(gymPlan.focus) ? 'home-back'
-      : /shoulder/i.test(gymPlan.focus) ? 'home-shoulders'
-        : /arm|biceps|triceps/i.test(gymPlan.focus) ? 'home-arms'
-          : /chest|push/i.test(gymPlan.focus) ? 'home-chest' : 'home-full';
+      : /chest|push/i.test(gymPlan.focus) ? 'home-chest'
+        : /shoulder/i.test(gymPlan.focus) ? 'home-shoulders'
+          : /arm|biceps|triceps/i.test(gymPlan.focus) ? 'home-arms' : 'home-full';
   return HOME_PROGRAMS.find(program => program.id === id) || HOME_PROGRAMS[0];
 }
 
@@ -1082,7 +1082,100 @@ function HomeWorkoutPlayer({ workout, themeDark, onChange, onFinish, onExit }: {
   </div>;
 }
 
-function WorkoutRunner(
+function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish, onExit }: {
+  workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean;
+  onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
+}) {
+  const [now, setNow] = useState(Date.now())
+  const [restUntil, setRestUntil] = useState<number | null>(null)
+  const [showPicker, setShowPicker] = useState(false)
+  const [search, setSearch] = useState('')
+  const elapsed = Math.max(0, Math.floor((now - workout.startedAt) / 1000))
+  const completed = workout.exercises.reduce((sum, exercise) => sum + exercise.sets.filter(set => set.done).length, 0)
+  const total = workout.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0)
+  const restRemaining = restUntil ? Math.max(0, Math.ceil((restUntil - now) / 1000)) : 0
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  useEffect(() => {
+    if (!restUntil) return
+    if (restUntil <= Date.now()) { setRestUntil(null); return }
+    const timer = window.setInterval(() => {
+      if (restUntil <= Date.now()) { if ('vibrate' in navigator) navigator.vibrate([180, 80, 180]); setRestUntil(null); window.clearInterval(timer) }
+    }, 500)
+    return () => window.clearInterval(timer)
+  }, [restUntil])
+  const patchExercise = (exerciseId: string, patch: Partial<WorkoutExercise>) => onChange({
+    ...workout, exercises: workout.exercises.map(exercise => exercise.id === exerciseId ? { ...exercise, ...patch } : exercise)
+  })
+  const patchSet = (exerciseId: string, setId: string, patch: Partial<SetEntry>) => onChange({
+    ...workout, exercises: workout.exercises.map(exercise => exercise.id === exerciseId ? {
+      ...exercise, sets: exercise.sets.map(set => set.id === setId ? { ...set, ...patch } : set)
+    } : exercise)
+  })
+  const addSet = (exercise: WorkoutExercise) => {
+    const last = exercise.sets[exercise.sets.length - 1]
+    patchExercise(exercise.id, { sets: [...exercise.sets, { id: makeId(), reps: last?.reps || 10, weightKg: last?.weightKg || 0, rir: 2, done: false }] })
+  }
+  const addExercise = (item: ProgramExercise) => {
+    const previous = latestSet(sessions, item.name)
+    onChange({ ...workout, exercises: [...workout.exercises, {
+      id: makeId(), name: item.name, muscle: item.muscle, equipment: item.equipment,
+      cue: item.cue, restSeconds: item.rest,
+      sets: Array.from({ length: item.sets }, () => ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
+    }] })
+    setShowPicker(false)
+  }
+  const pickerItems = EXERCISE_LIBRARY.filter(item => item.name.toLowerCase().includes(search.toLowerCase()) || item.muscle.toLowerCase().includes(search.toLowerCase()))
+  return <div className={themeDark ? 'workout-screen dark-workout' : 'workout-screen'}>
+    <header className="workout-topbar"><button className="icon-action" onClick={onExit}><ArrowLeft size={18} /></button><div><strong>LEGRANDE / SESSION</strong><span>{workout.focus}</span></div><div className="session-clock"><Clock3 size={15} /> {formatTime(elapsed)}</div></header>
+    <div className="workout-container">
+      <div className="workout-heading"><div><span className="eyebrow">IN PROGRESS · {new Date(workout.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} START</span><h1>{workout.title}</h1><p>Focus on clean reps. Record what you actually do.</p></div><div className="workout-counter"><strong>{completed}<small> / {total}</small></strong><span>SETS DONE</span></div></div>
+      <div className="workout-progress"><i style={{ width: (total ? completed / total * 100 : 0) + '%' }} /></div>
+      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={17} /><span>REST TIMER</span></div><strong>{formatTime(restRemaining)}</strong><button onClick={() => setRestUntil(null)}>Skip rest</button></div>}
+      <div className="active-exercises">{workout.exercises.map((exercise, exerciseIndex) => {
+        const previous = latestSet(sessions, exercise.name)
+        const done = exercise.sets.filter(set => set.done).length
+        return <article className="active-exercise" key={exercise.id}>
+          <div className="active-exercise-head"><img className="runner-exercise-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
+          <p className="form-cue">{exercise.cue}</p>
+          {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
+          {(() => {
+            const previousSession = sessions.find(session => session.exercises.some(item => item.name === exercise.name))
+            const previousExercise = previousSession?.exercises.find(item => item.name === exercise.name)
+            const completedPrevious = previousExercise?.sets.filter(set => set.done) || []
+            if (!completedPrevious.length) return null
+            const completedEverySet = previousExercise?.sets.length === completedPrevious.length
+            const averageRir = completedPrevious.reduce((sum, set) => sum + set.rir, 0) / completedPrevious.length
+            return <div className="progression-note"><Target size={14} /><span>{completedEverySet && averageRir >= 2 ? 'You completed every set last time with some reps in reserve. If technique stayed consistent, consider a small load increase or one extra rep.' : 'Aim to match your last clean set first. Add load only when you can keep the same controlled technique.'}</span></div>
+          })()}
+          <div className="set-table">
+            <div className="set-table-head"><span>SET</span><span>{units === 'metric' ? 'KG' : 'LB'}</span><span>REPS</span><span>RIR</span><span>DONE</span></div>
+            {exercise.sets.map((set, setIndex) => <div className={set.done ? 'set-row completed' : 'set-row'} key={set.id}>
+              <span className="set-num">{String(setIndex + 1).padStart(2, '0')}</span>
+              <input aria-label={exercise.name + ' set ' + (setIndex + 1) + ' weight'} type="number" min="0" step="0.5" value={displayWeight(set.weightKg, units) || ''} placeholder="0" onChange={event => patchSet(exercise.id, set.id, { weightKg: toKg(event.target.value, units) || 0 })} />
+              <input aria-label={exercise.name + ' set ' + (setIndex + 1) + ' reps'} type="number" min="1" value={set.reps} onChange={event => patchSet(exercise.id, set.id, { reps: Math.max(1, Number(event.target.value)) })} />
+              <select aria-label={exercise.name + ' set ' + (setIndex + 1) + ' reps in reserve'} value={set.rir} onChange={event => patchSet(exercise.id, set.id, { rir: Number(event.target.value) })}>{[0, 1, 2, 3, 4, 5].map(value => <option value={value} key={value}>{value}</option>)}</select>
+              <button className={set.done ? 'set-check checked' : 'set-check'} aria-label={set.done ? 'Mark set incomplete' : 'Mark set complete'} onClick={() => {
+                const nextDone = !set.done
+                patchSet(exercise.id, set.id, { done: nextDone })
+                if (nextDone && exercise.restSeconds > 0) setRestUntil(Date.now() + exercise.restSeconds * 1000)
+              }}>{set.done ? <Check size={15} /> : <span />}</button>
+            </div>)}
+          </div>
+          <p className="set-help"><strong>RIR means “reps in reserve”.</strong> Estimate how many more good-form reps you could have completed. Use 2 if you are unsure; it is a guide, not a test.</p>
+          <div className="exercise-actions"><button onClick={() => addSet(exercise)}><Plus size={14} /> Add set</button><button onClick={() => setRestUntil(Date.now() + exercise.restSeconds * 1000)}><Timer size={14} /> Rest {exercise.restSeconds}s</button></div>
+        </article>
+      })}</div>
+      <button className="add-exercise" onClick={() => setShowPicker(true)}><Plus size={17} /> Add another exercise</button>
+      <label className="field-label session-notes">Session notes<textarea value={workout.notes} onChange={event => onChange({ ...workout, notes: event.target.value })} placeholder="How did the session feel? Any changes to remember next time?" rows={3} /></label>
+      <div className="finish-row"><div><strong>{completed} working sets</strong><span>{prettyDuration(Math.max(1, Math.floor(elapsed / 60)))} elapsed</span></div><button className="button primary-button" onClick={onFinish}>Finish & save session <CheckCircle2 size={17} /></button></div>
+    </div>
+    {showPicker && <div className="modal-backdrop" onClick={() => setShowPicker(false)}><div className="modal-card exercise-picker" onClick={event => event.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">EXERCISE LIBRARY</span><h2>Add movement</h2></div><button className="icon-action" onClick={() => setShowPicker(false)}><X size={18} /></button></div><div className="search-field"><Search size={16} /><input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name or muscle" /></div><div className="picker-list">{pickerItems.map(item => <button key={item.name} onClick={() => addExercise(item)}><div><strong>{item.name}</strong><span>{item.muscle} · {item.equipment}</span></div><Plus size={16} /></button>)}</div></div></div>}
+  </div>
+}
+
 function ProgressPage({ store, onWeight, onMeasurement }: { store: Store; onWeight: () => void; onMeasurement: () => void }) {
   const [range, setRange] = useState(30)
   const sorted = [...store.weightLogs].sort((a, b) => a.date.localeCompare(b.date))
