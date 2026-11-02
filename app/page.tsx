@@ -37,6 +37,8 @@ type WorkoutExercise = {
   cue: string
   sets: SetEntry[]
   restSeconds: number
+  phase?: 'warmup' | 'main' | 'cooldown'
+  durationSec?: number
 }
 type ActiveWorkout = {
   id: string
@@ -68,7 +70,7 @@ type Store = {
   weightLogs: WeightLog[]
   measurementLogs: MeasurementLog[]
 }
-type ProgramExercise = { name: string; muscle: string; equipment: string; sets: number; reps: number; rest: number; cue: string }
+type ProgramExercise = { name: string; muscle: string; equipment: string; sets: number; reps: number; rest: number; cue: string; phase?: 'warmup' | 'main' | 'cooldown'; durationSec?: number }
 type Program = { id: string; title: string; focus: string; level: Level; duration: number; description: string; mode?: 'gym' | 'home'; exercises: ProgramExercise[] }
 
 const STORE_KEY = 'legrande:member:v2'
@@ -290,6 +292,82 @@ const HOME_PROGRAMS: Program[] = [
     ]
   }
 ];
+
+// Give every home routine a clear opening, six focused work movements and a short cool-down.
+const HOME_EXTRAS: Record<string, ProgramExercise[]> = {
+  'home-full': [
+    { name: 'Reverse lunge', muscle: 'Legs', equipment: 'No equipment', sets: 1, reps: 8, rest: 15, cue: 'Step back and lower under control. Alternate legs.' },
+    { name: 'Wall push-up', muscle: 'Chest', equipment: 'Wall', sets: 1, reps: 12, rest: 15, cue: 'Place hands on a wall, lean in with a straight body, then press away.' }
+  ],
+  'home-chest': [
+    { name: 'Wide push-up', muscle: 'Chest', equipment: 'Floor mat', sets: 1, reps: 8, rest: 20, cue: 'Place hands slightly wider than shoulders and lower as one unit.' },
+    { name: 'Plank shoulder tap', muscle: 'Chest · Core', equipment: 'Floor mat', sets: 1, reps: 12, rest: 20, cue: 'In a high plank, tap opposite shoulders while keeping hips steady.' }
+  ],
+  'home-back': [
+    { name: 'Prone W raise', muscle: 'Upper back', equipment: 'Floor mat', sets: 1, reps: 10, rest: 20, cue: 'Lie face down, bend elbows into a W and lift hands and elbows slightly.' },
+    { name: 'Scapular push-up', muscle: 'Upper back', equipment: 'Floor mat', sets: 1, reps: 10, rest: 20, cue: 'Hold a high plank and move only your shoulder blades, keeping elbows straight.' },
+    { name: 'Prone cobra hold', muscle: 'Upper back', equipment: 'Floor mat', sets: 1, reps: 20, rest: 20, cue: 'Lie face down, lift chest slightly and draw shoulder blades down and back.' }
+  ],
+  'home-legs': [
+    { name: 'Wall sit', muscle: 'Quads', equipment: 'Wall', sets: 1, reps: 30, rest: 20, cue: 'Slide down a wall to a comfortable knee bend and hold with your back supported.' },
+    { name: 'Squat pulse', muscle: 'Quads · Glutes', equipment: 'No equipment', sets: 1, reps: 12, rest: 20, cue: 'Stay in a comfortable partial squat and make small controlled pulses.' }
+  ],
+  'home-shoulders': [
+    { name: 'Wall slide', muscle: 'Shoulders', equipment: 'Wall', sets: 1, reps: 10, rest: 20, cue: 'Keep forearms against a wall and slide your arms upward without shrugging.' },
+    { name: 'Prone Y raise', muscle: 'Rear delts', equipment: 'Floor mat', sets: 1, reps: 10, rest: 20, cue: 'Lie face down and lift your arms in a Y shape with thumbs pointing upward.' },
+    { name: 'Bear plank shoulder tap', muscle: 'Shoulders · Core', equipment: 'Floor mat', sets: 1, reps: 10, rest: 20, cue: 'Hover knees just above the floor and tap the opposite shoulder without rocking.' }
+  ],
+  'home-arms': [
+    { name: 'Diamond push-up', muscle: 'Triceps', equipment: 'Floor mat', sets: 1, reps: 6, rest: 25, cue: 'Bring hands closer beneath your chest. Use an incline if the floor version is too difficult.' },
+    { name: 'Reverse plank hold', muscle: 'Arms · Core', equipment: 'Floor mat', sets: 1, reps: 20, rest: 20, cue: 'Sit with hands behind you, lift hips and keep shoulders comfortable.' },
+    { name: 'Incline close-grip push-up', muscle: 'Triceps', equipment: 'Stable counter', sets: 1, reps: 10, rest: 20, cue: 'Use a stable counter and keep elbows angled back as you lower.' }
+  ]
+};
+const HOME_COOLDOWNS: Record<string, ProgramExercise[]> = {
+  'home-full': [
+    { name: 'Standing forward fold', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Soften your knees and fold forward only as far as comfortable.' },
+    { name: 'Chest opener stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Clasp hands behind your back or place them on your hips and gently open your chest.' }
+  ],
+  'home-chest': [
+    { name: 'Doorway chest stretch', muscle: 'Cool-down', equipment: 'Door frame', sets: 1, reps: 30, rest: 0, cue: 'Rest a forearm against a door frame and turn gently away until you feel a mild chest stretch.' },
+    { name: 'Overhead triceps stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Reach one arm overhead, bend the elbow and gently guide it with the other hand.' }
+  ],
+  'home-back': [
+    { name: 'Child’s pose', muscle: 'Cool-down', equipment: 'Floor mat', sets: 1, reps: 35, rest: 0, cue: 'Sit hips toward heels and reach arms forward. Breathe comfortably.' },
+    { name: 'Sphinx stretch', muscle: 'Cool-down', equipment: 'Floor mat', sets: 1, reps: 30, rest: 0, cue: 'Lie face down and prop on forearms, keeping the stretch gentle.' }
+  ],
+  'home-legs': [
+    { name: 'Standing quad stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Hold a support, bring heel toward glutes and keep knees close.' },
+    { name: 'Hamstring stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Place one heel forward and hinge gently at the hips with a long back.' }
+  ],
+  'home-shoulders': [
+    { name: 'Cross-body shoulder stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Bring one arm across your chest and guide it gently with the opposite hand.' },
+    { name: 'Chest opener stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Open your chest gently while keeping shoulders relaxed and down.' }
+  ],
+  'home-arms': [
+    { name: 'Overhead triceps stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Reach one arm overhead, bend the elbow and guide gently with your other hand.' },
+    { name: 'Cross-body shoulder stretch', muscle: 'Cool-down', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Bring one arm across your chest and hold a comfortable stretch.' }
+  ]
+};
+const HOME_WARMUPS: ProgramExercise[] = [
+  { name: 'March in place', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 40, rest: 10, cue: 'Stand tall and march briskly, lifting each knee comfortably.', phase: 'warmup', durationSec: 45 },
+  { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 10, cue: 'Make small controlled circles, then gradually widen them.', phase: 'warmup', durationSec: 45 }
+];
+HOME_PROGRAMS.forEach(program => {
+  const warmups = program.id === 'home-back'
+    ? [{ name: 'Cat-cow', muscle: 'Warm-up', equipment: 'Floor mat', sets: 1, reps: 10, rest: 10, cue: 'On hands and knees, gently round and extend your spine without forcing the range.', phase: 'warmup' as const, durationSec: 45 }, HOME_WARMUPS[1]]
+    : HOME_WARMUPS;
+  const main = [...program.exercises, ...(HOME_EXTRAS[program.id] || [])];
+  const cooldowns = HOME_COOLDOWNS[program.id] || HOME_COOLDOWNS['home-full'];
+  const sequence = [...warmups, ...main, ...cooldowns];
+  program.exercises = sequence.map((exercise, index) => ({
+    ...exercise,
+    sets: 1,
+    phase: index < warmups.length ? 'warmup' : index >= sequence.length - cooldowns.length ? 'cooldown' : 'main',
+    durationSec: exercise.durationSec || (index < warmups.length ? 45 : index >= sequence.length - cooldowns.length ? 35 : 40)
+  }));
+});
+
 const PHOTO_URLS = {
   gym: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80',
   chest: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80',
@@ -307,7 +385,7 @@ function exerciseImage(name: string) {
   if (/curl/.test(value)) return PHOTO_URLS.arms;
   if (/lat|row|superman|bird dog|cat-cow/.test(value)) return PHOTO_URLS.back;
   if (/push-up|chest|fly/.test(value)) return PHOTO_URLS.chest;
-  if (/plank|march|mountain|jumping|dead bug/.test(value)) return PHOTO_URLS.home;
+  if (/plank|march|mountain|jumping|dead bug|stretch|child|sphinx|fold|cat-cow/.test(value)) return PHOTO_URLS.home;
   return PHOTO_URLS.gym;
 }
 function programImage(program: Program) {
@@ -450,7 +528,8 @@ function programFromSession(session: Session, level: Level): Program {
       sets: Math.max(1, exercise.sets.length),
       reps: exercise.sets.find(set => set.done)?.reps || 10,
       rest: exercise.restSeconds,
-      cue: exercise.cue || 'Use a controlled range of motion and a load you can manage.'
+      cue: exercise.cue || 'Use a controlled range of motion and a load you can manage.',
+      phase: exercise.phase, durationSec: exercise.durationSec
     }))
   }
 }
@@ -462,8 +541,8 @@ function buildWorkout(program: Program, sessions: Session[]): ActiveWorkout {
       const previous = latestSet(sessions, item.name)
       return {
         id: makeId(), name: item.name, muscle: item.muscle, equipment: item.equipment,
-        cue: item.cue, restSeconds: item.rest,
-        sets: Array.from({ length: item.sets }, () => ({
+        cue: item.cue, restSeconds: item.rest, phase: item.phase, durationSec: item.durationSec,
+        sets: Array.from({ length: program.mode === 'home' ? 1 : item.sets }, () => ({
           id: makeId(), reps: previous ? previous.reps : item.reps,
           weightKg: previous ? previous.weightKg : 0, rir: 2, done: false
         }))
@@ -565,6 +644,7 @@ export default function Page() {
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null)
   const [pausedWorkout, setPausedWorkout] = useState<ActiveWorkout | null>(null)
   const [tab, setTab] = useState<Tab>('today')
+  const [trainView, setTrainView] = useState<'plans' | 'home' | 'library'>('plans')
   const [modal, setModal] = useState<'weight' | 'measurement' | null>(null)
   const [toast, setToast] = useState('')
 
@@ -644,7 +724,11 @@ export default function Page() {
   }
 
   if (!store) return <div className="loading-screen"><div className="brand-mark">LF</div><p>Preparing your training space</p></div>
-  if (!store.profile.onboardingComplete) return <Onboarding onComplete={(profile, firstLog) => persist({ ...store, profile, weightLogs: firstLog ? [...store.weightLogs.filter(item => item.date !== firstLog.date), firstLog].sort((a, b) => a.date.localeCompare(b.date)) : store.weightLogs })} />
+  if (!store.profile.onboardingComplete) return <Onboarding initialProfile={store.profile} onComplete={(profile, firstLog) => persist({ ...store, profile, weightLogs: firstLog ? [...store.weightLogs.filter(item => item.date !== firstLog.date), firstLog].sort((a, b) => a.date.localeCompare(b.date)) : store.weightLogs })} />
+
+  if (activeWorkout?.mode === 'home') {
+    return <HomeWorkoutPlayer workout={activeWorkout} themeDark={store.profile.themeDark} onChange={saveActive} onFinish={finishWorkout} onExit={() => { if (window.confirm('Pause this home workout and return to your member space? Your progress will remain saved.')) { setPausedWorkout(activeWorkout); setActiveWorkout(null); setTab('today'); } }} />
+  }
 
   if (activeWorkout) {
     return <WorkoutRunner
@@ -691,8 +775,8 @@ export default function Page() {
           </button>
         </div>
         <main className="page-content">
-          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onWeight={() => setModal('weight')} onTrain={() => setTab('train')} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
-          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} />}
+          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onWeight={() => setModal('weight')} onTrain={() => { setTrainView('home'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
+          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} initialView={trainView} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
           {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
         </main>
@@ -718,9 +802,9 @@ function Brand() {
   </div>
 }
 
-function Onboarding({ onComplete }: { onComplete: (profile: Profile, firstLog?: WeightLog) => void }) {
+function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplete: (profile: Profile, firstLog?: WeightLog) => void; initialProfile?: Profile }) {
   const [step, setStep] = useState(1);
-  const [profile, setProfile] = useState<Profile>({ ...defaultProfile });
+  const [profile, setProfile] = useState<Profile>({ ...defaultProfile, ...initialProfile });
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
   const update = (patch: Partial<Profile>) => setProfile(current => ({ ...current, ...patch }));
@@ -856,8 +940,8 @@ function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume 
   </>;
 }
 
-function TrainingPage({ store, onStart, onRepeat }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void }) {
-  const [view, setView] = useState<'plans' | 'home' | 'library'>('plans');
+function TrainingPage({ store, onStart, onRepeat, initialView = 'plans' }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void; initialView?: 'plans' | 'home' | 'library' }) {
+  const [view, setView] = useState<'plans' | 'home' | 'library'>(initialView);
   const [focus, setFocus] = useState('All');
   const [query, setQuery] = useState('');
   const [homeDuration, setHomeDuration] = useState(20);
@@ -920,100 +1004,85 @@ function TrainingPage({ store, onStart, onRepeat }: { store: Store; onStart: (pr
   </>;
 }
 
-function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish, onExit }: {
-  workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean;
-  onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
+function HomeWorkoutPlayer({ workout, themeDark, onChange, onFinish, onExit }: {
+  workout: ActiveWorkout; themeDark: boolean; onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
 }) {
-  const [now, setNow] = useState(Date.now())
-  const [restUntil, setRestUntil] = useState<number | null>(null)
-  const [showPicker, setShowPicker] = useState(false)
-  const [search, setSearch] = useState('')
-  const elapsed = Math.max(0, Math.floor((now - workout.startedAt) / 1000))
-  const completed = workout.exercises.reduce((sum, exercise) => sum + exercise.sets.filter(set => set.done).length, 0)
-  const total = workout.exercises.reduce((sum, exercise) => sum + exercise.sets.length, 0)
-  const restRemaining = restUntil ? Math.max(0, Math.ceil((restUntil - now) / 1000)) : 0
+  const [index, setIndex] = useState(0);
+  const [remaining, setRemaining] = useState(workout.exercises[0]?.durationSec || 40);
+  const [phase, setPhase] = useState<'move' | 'rest'>('move');
+  const [running, setRunning] = useState(true);
+  const [finished, setFinished] = useState(false);
+  const [completedMoves, setCompletedMoves] = useState<number[]>([]);
+  const current = workout.exercises[index];
+  const next = workout.exercises[index + 1];
+  const total = workout.exercises.length;
+  const progress = total ? completedMoves.length / total * 100 : 0;
+  const markMove = (moveIndex: number) => {
+    const exercise = workout.exercises[moveIndex];
+    if (!exercise || completedMoves.includes(moveIndex)) return;
+    setCompletedMoves(items => items.includes(moveIndex) ? items : [...items, moveIndex]);
+    onChange({
+      ...workout,
+      exercises: workout.exercises.map((item, itemIndex) => itemIndex === moveIndex
+        ? { ...item, sets: item.sets.map(set => ({ ...set, done: true })) }
+        : item)
+    });
+  };
+  const skipMove = () => {
+    markMove(index);
+    if (index >= total - 1) {
+      setFinished(true);
+      setRunning(false);
+      return;
+    }
+    setIndex(index + 1);
+    setPhase('move');
+    setRemaining(workout.exercises[index + 1]?.durationSec || 40);
+  };
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
-    return () => window.clearInterval(timer)
-  }, [])
+    if (!running || finished) return;
+    const timer = window.setInterval(() => setRemaining(value => Math.max(0, value - 1)), 1000);
+    return () => window.clearInterval(timer);
+  }, [running, finished]);
   useEffect(() => {
-    if (!restUntil) return
-    if (restUntil <= Date.now()) { setRestUntil(null); return }
-    const timer = window.setInterval(() => {
-      if (restUntil <= Date.now()) { if ('vibrate' in navigator) navigator.vibrate([180, 80, 180]); setRestUntil(null); window.clearInterval(timer) }
-    }, 500)
-    return () => window.clearInterval(timer)
-  }, [restUntil])
-  const patchExercise = (exerciseId: string, patch: Partial<WorkoutExercise>) => onChange({
-    ...workout, exercises: workout.exercises.map(exercise => exercise.id === exerciseId ? { ...exercise, ...patch } : exercise)
-  })
-  const patchSet = (exerciseId: string, setId: string, patch: Partial<SetEntry>) => onChange({
-    ...workout, exercises: workout.exercises.map(exercise => exercise.id === exerciseId ? {
-      ...exercise, sets: exercise.sets.map(set => set.id === setId ? { ...set, ...patch } : set)
-    } : exercise)
-  })
-  const addSet = (exercise: WorkoutExercise) => {
-    const last = exercise.sets[exercise.sets.length - 1]
-    patchExercise(exercise.id, { sets: [...exercise.sets, { id: makeId(), reps: last?.reps || 10, weightKg: last?.weightKg || 0, rir: 2, done: false }] })
-  }
-  const addExercise = (item: ProgramExercise) => {
-    const previous = latestSet(sessions, item.name)
-    onChange({ ...workout, exercises: [...workout.exercises, {
-      id: makeId(), name: item.name, muscle: item.muscle, equipment: item.equipment,
-      cue: item.cue, restSeconds: item.rest,
-      sets: Array.from({ length: item.sets }, () => ({ id: makeId(), reps: previous?.reps || item.reps, weightKg: previous?.weightKg || 0, rir: 2, done: false }))
-    }] })
-    setShowPicker(false)
-  }
-  const pickerItems = EXERCISE_LIBRARY.filter(item => item.name.toLowerCase().includes(search.toLowerCase()) || item.muscle.toLowerCase().includes(search.toLowerCase()))
-  return <div className={themeDark ? 'workout-screen dark-workout' : 'workout-screen'}>
-    <header className="workout-topbar"><button className="icon-action" onClick={onExit}><ArrowLeft size={18} /></button><div><strong>LEGRANDE / SESSION</strong><span>{workout.focus}</span></div><div className="session-clock"><Clock3 size={15} /> {formatTime(elapsed)}</div></header>
-    <div className="workout-container">
-      <div className="workout-heading"><div><span className="eyebrow">IN PROGRESS · {new Date(workout.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} START</span><h1>{workout.title}</h1><p>Focus on clean reps. Record what you actually do.</p></div><div className="workout-counter"><strong>{completed}<small> / {total}</small></strong><span>SETS DONE</span></div></div>
-      <div className="workout-progress"><i style={{ width: (total ? completed / total * 100 : 0) + '%' }} /></div>
-      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={17} /><span>REST TIMER</span></div><strong>{formatTime(restRemaining)}</strong><button onClick={() => setRestUntil(null)}>Skip rest</button></div>}
-      <div className="active-exercises">{workout.exercises.map((exercise, exerciseIndex) => {
-        const previous = latestSet(sessions, exercise.name)
-        const done = exercise.sets.filter(set => set.done).length
-        return <article className="active-exercise" key={exercise.id}>
-          <div className="active-exercise-head"><img className="runner-exercise-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
-          <p className="form-cue">{exercise.cue}</p>
-          {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
-          {(() => {
-            const previousSession = sessions.find(session => session.exercises.some(item => item.name === exercise.name))
-            const previousExercise = previousSession?.exercises.find(item => item.name === exercise.name)
-            const completedPrevious = previousExercise?.sets.filter(set => set.done) || []
-            if (!completedPrevious.length) return null
-            const completedEverySet = previousExercise?.sets.length === completedPrevious.length
-            const averageRir = completedPrevious.reduce((sum, set) => sum + set.rir, 0) / completedPrevious.length
-            return <div className="progression-note"><Target size={14} /><span>{completedEverySet && averageRir >= 2 ? 'You completed every set last time with some reps in reserve. If technique stayed consistent, consider a small load increase or one extra rep.' : 'Aim to match your last clean set first. Add load only when you can keep the same controlled technique.'}</span></div>
-          })()}
-          <div className="set-table">
-            <div className="set-table-head"><span>SET</span><span>{units === 'metric' ? 'KG' : 'LB'}</span><span>REPS</span><span>RIR</span><span>DONE</span></div>
-            {exercise.sets.map((set, setIndex) => <div className={set.done ? 'set-row completed' : 'set-row'} key={set.id}>
-              <span className="set-num">{String(setIndex + 1).padStart(2, '0')}</span>
-              <input aria-label={exercise.name + ' set ' + (setIndex + 1) + ' weight'} type="number" min="0" step="0.5" value={displayWeight(set.weightKg, units) || ''} placeholder="0" onChange={event => patchSet(exercise.id, set.id, { weightKg: toKg(event.target.value, units) || 0 })} />
-              <input aria-label={exercise.name + ' set ' + (setIndex + 1) + ' reps'} type="number" min="1" value={set.reps} onChange={event => patchSet(exercise.id, set.id, { reps: Math.max(1, Number(event.target.value)) })} />
-              <select aria-label={exercise.name + ' set ' + (setIndex + 1) + ' reps in reserve'} value={set.rir} onChange={event => patchSet(exercise.id, set.id, { rir: Number(event.target.value) })}>{[0, 1, 2, 3, 4, 5].map(value => <option value={value} key={value}>{value}</option>)}</select>
-              <button className={set.done ? 'set-check checked' : 'set-check'} aria-label={set.done ? 'Mark set incomplete' : 'Mark set complete'} onClick={() => {
-                const nextDone = !set.done
-                patchSet(exercise.id, set.id, { done: nextDone })
-                if (nextDone && exercise.restSeconds > 0) setRestUntil(Date.now() + exercise.restSeconds * 1000)
-              }}>{set.done ? <Check size={15} /> : <span />}</button>
-            </div>)}
-          </div>
-          <p className="set-help"><strong>RIR means “reps in reserve”.</strong> Estimate how many more good-form reps you could have completed. Use 2 if you are unsure; it is a guide, not a test.</p>
-          <div className="exercise-actions"><button onClick={() => addSet(exercise)}><Plus size={14} /> Add set</button><button onClick={() => setRestUntil(Date.now() + exercise.restSeconds * 1000)}><Timer size={14} /> Rest {exercise.restSeconds}s</button></div>
-        </article>
-      })}</div>
-      <button className="add-exercise" onClick={() => setShowPicker(true)}><Plus size={17} /> Add another exercise</button>
-      <label className="field-label session-notes">Session notes<textarea value={workout.notes} onChange={event => onChange({ ...workout, notes: event.target.value })} placeholder="How did the session feel? Any changes to remember next time?" rows={3} /></label>
-      <div className="finish-row"><div><strong>{completed} working sets</strong><span>{prettyDuration(Math.max(1, Math.floor(elapsed / 60)))} elapsed</span></div><button className="button primary-button" onClick={onFinish}>Finish & save session <CheckCircle2 size={17} /></button></div>
-    </div>
-    {showPicker && <div className="modal-backdrop" onClick={() => setShowPicker(false)}><div className="modal-card exercise-picker" onClick={event => event.stopPropagation()}><div className="modal-heading"><div><span className="eyebrow">EXERCISE LIBRARY</span><h2>Add movement</h2></div><button className="icon-action" onClick={() => setShowPicker(false)}><X size={18} /></button></div><div className="search-field"><Search size={16} /><input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Search by name or muscle" /></div><div className="picker-list">{pickerItems.map(item => <button key={item.name} onClick={() => addExercise(item)}><div><strong>{item.name}</strong><span>{item.muscle} · {item.equipment}</span></div><Plus size={16} /></button>)}</div></div></div>}
-  </div>
+    if (remaining !== 0 || finished) return;
+    if (phase === 'move') {
+      markMove(index);
+      if (index >= total - 1) {
+        setFinished(true);
+        setRunning(false);
+      } else {
+        setPhase('rest');
+        setRemaining(10);
+      }
+    } else {
+      const nextIndex = index + 1;
+      setIndex(nextIndex);
+      setPhase('move');
+      setRemaining(workout.exercises[nextIndex]?.durationSec || 40);
+    }
+  }, [remaining, phase, index, finished, total, workout.exercises]);
+  if (!current) return <div className="home-player-shell"><p>No movements in this routine.</p><button className="button primary-button" onClick={onExit}>Return</button></div>;
+  return <div className={themeDark ? 'home-player-shell dark' : 'home-player-shell'}>
+    <header className="home-player-header"><button className="home-player-back" onClick={onExit}><ArrowLeft size={18} /></button><div><strong>LEGRANDE / HOME SESSION</strong><span>{workout.focus}</span></div><span className="home-player-count">{Math.min(completedMoves.length + (phase === 'move' ? 1 : 0), total)} / {total}</span></header>
+    <main className="home-player-main">
+      <div className="home-player-topline"><span className="eyebrow">{finished ? 'SESSION COMPLETE' : phase === 'rest' ? 'SHORT REST' : (current.phase || 'main').toUpperCase()}</span><span className="subtle">{workout.title}</span></div>
+      <div className="home-player-progress"><i style={{ width: progress + '%' }} /></div>
+      {finished ? <section className="home-player-complete"><div className="home-player-complete-mark"><Check size={30} /></div><span className="eyebrow">ALL MOVEMENTS COMPLETE</span><h1>Good work.</h1><p>Your home session is ready to be saved to your training history.</p><button className="button primary-button" onClick={onFinish}>Save completed workout <CheckCircle2 size={17} /></button></section> : <>
+        <div className="home-player-stage">
+          {phase === 'move' ? <img src={exerciseImage(current.name)} alt={current.name + ' movement reference'} /> : <div className="home-player-rest-art"><Timer size={46} /><span>RESET YOUR POSITION</span></div>}
+          <div className="home-player-stage-label">{phase === 'rest' ? 'BREATHE · NEXT MOVE COMING UP' : 'MOVE ' + String(index + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0')}</div>
+        </div>
+        <div className="home-player-timer"><strong>{phase === 'rest' ? 'REST' : current.name}</strong><span>{String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}</span><small>{phase === 'rest' ? 'Get ready for the next movement' : 'Work at a controlled pace · target ' + current.reps + ' reps'}</small></div>
+        {phase === 'move' && <div className="home-player-instruction"><span className="eyebrow">HOW TO DO IT</span><p>{current.cue}</p><div><span>{current.equipment}</span><span>{current.muscle}</span></div></div>}
+        {next && <div className="home-player-next"><span className="eyebrow">UP NEXT</span><img src={exerciseImage(next.name)} alt="" /><div><strong>{next.name}</strong><span>{next.phase === 'cooldown' ? 'Cool-down' : next.muscle}</span></div><ChevronRight size={17} /></div>}
+        <div className="home-player-controls"><button className="button secondary-button" onClick={() => { setRunning(!running); }}><span>{running ? 'Pause' : 'Resume'}</span></button><button className="button primary-button" onClick={phase === 'rest' ? () => { const nextIndex = index + 1; if (nextIndex < total) { setIndex(nextIndex); setPhase('move'); setRemaining(workout.exercises[nextIndex]?.durationSec || 40); } } : skipMove}>{phase === 'rest' ? 'Skip rest' : 'Skip movement'} <ArrowRight size={15} /></button></div>
+      </>}
+    </main>
+  </div>;
 }
 
+function WorkoutRunner(
 function ProgressPage({ store, onWeight, onMeasurement }: { store: Store; onWeight: () => void; onMeasurement: () => void }) {
   const [range, setRange] = useState(30)
   const sorted = [...store.weightLogs].sort((a, b) => a.date.localeCompare(b.date))

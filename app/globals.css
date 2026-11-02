@@ -121,3 +121,43 @@
 .dark .member-type-grid .choice-card.selected,.dark .split-choice-grid .choice-card.selected{background:#2b2b2b;border-color:#fff}
 @media(max-width:850px){.dashboard-focus-grid{grid-template-columns:1fr}.split-choice-grid{grid-template-columns:1fr 1fr}.home-program-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.member-type-grid,.split-choice-grid,.baseline-grid{grid-template-columns:1fr 1fr}.home-workout-hero{grid-template-columns:1fr}.home-workout-hero>img{height:145px;min-height:145px}.home-workout-hero>div{padding:17px}.home-program-grid{grid-template-columns:1fr}.today-plan-item{grid-template-columns:74px minmax(0,1fr);gap:10px}.today-plan-item img{width:74px;height:72px}.runner-exercise-photo{width:58px;height:56px}.library-photo{width:64px;height:58px}.training-mode-tabs{gap:4px}.duration-filter{flex-wrap:wrap}.duration-filter>span{width:100%}.split-choice-grid .choice-card{min-height:92px}}
+
+/* Guided home session: large timer, visible movement cue and next-step preview. */
+.home-player-shell{min-height:100vh;background:#f5f5f3;color:#151515;padding:0 18px 34px}
+.home-player-shell.dark{background:#080808;color:#f5f5f5}
+.home-player-header{max-width:760px;margin:0 auto;height:68px;display:flex;align-items:center;gap:14px;border-bottom:1px solid rgba(128,128,128,.28)}
+.home-player-header>div{display:grid;gap:4px;flex:1;min-width:0}
+.home-player-header strong{font:10px 'DM Mono',monospace;letter-spacing:.12em}
+.home-player-header span{font-size:10px;color:#858585}
+.home-player-count{font:10px 'DM Mono',monospace}
+.home-player-back{width:36px;height:36px;border:1px solid rgba(128,128,128,.35);border-radius:10px;display:grid;place-items:center;background:transparent;color:inherit}
+.home-player-main{max-width:650px;margin:0 auto;padding:25px 0}
+.home-player-topline{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}
+.home-player-progress{height:5px;background:rgba(128,128,128,.2);border-radius:20px;overflow:hidden;margin-bottom:19px}
+.home-player-progress i{display:block;height:100%;background:currentColor;transition:width .25s}
+.home-player-stage{position:relative;height:clamp(190px,38vh,310px);border-radius:18px;overflow:hidden;background:#222}
+.home-player-stage>img{width:100%;height:100%;object-fit:cover}
+.home-player-stage:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.58),transparent 50%)}
+.home-player-stage-label{position:absolute;z-index:1;left:17px;bottom:15px;color:#fff;font:9px 'DM Mono',monospace;letter-spacing:.15em}
+.home-player-rest-art{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;background:linear-gradient(135deg,#242424,#555)}
+.home-player-rest-art span{font:9px 'DM Mono',monospace;letter-spacing:.16em}
+.home-player-timer{text-align:center;padding:20px 0 15px}
+.home-player-timer strong{display:block;font-size:clamp(15px,2vw,19px);letter-spacing:-.02em}
+.home-player-timer>span{display:block;font-size:clamp(52px,11vw,82px);line-height:1.08;font-weight:800;letter-spacing:-.08em;font-variant-numeric:tabular-nums}
+.home-player-timer small{display:block;color:#858585;font-size:10px;margin-top:5px}
+.home-player-instruction{border:1px solid rgba(128,128,128,.28);border-radius:14px;padding:15px 17px}
+.home-player-instruction p{font-size:12px;line-height:1.65;margin:7px 0 12px}
+.home-player-instruction>div{display:flex;gap:7px;flex-wrap:wrap}
+.home-player-instruction>div span{font-size:9px;color:#888;border:1px solid rgba(128,128,128,.3);border-radius:99px;padding:5px 8px}
+.home-player-next{display:flex;align-items:center;gap:11px;margin-top:12px;padding:11px;border-radius:13px;background:rgba(128,128,128,.1)}
+.home-player-next>img{width:46px;height:42px;object-fit:cover;border-radius:8px}
+.home-player-next>div{display:grid;gap:4px;flex:1}
+.home-player-next strong{font-size:11px}.home-player-next span{font-size:9px;color:#888}
+.home-player-next>svg{opacity:.6}
+.home-player-controls{display:grid;grid-template-columns:1fr 1.4fr;gap:10px;margin-top:16px}
+.home-player-controls .button{min-height:47px}
+.home-player-complete{min-height:65vh;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;gap:13px}
+.home-player-complete-mark{width:62px;height:62px;border:1px solid currentColor;border-radius:50%;display:grid;place-items:center}
+.home-player-complete h1{font-size:42px;letter-spacing:-.07em;margin:0}
+.home-player-complete p{font-size:11px;color:#888;max-width:310px;line-height:1.6}
+@media(max-width:580px){.home-player-shell{padding:0 14px 22px}.home-player-header{height:60px}.home-player-main{padding-top:18px}.home-player-controls{grid-template-columns:1fr 1.25fr}}
