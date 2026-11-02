@@ -296,7 +296,7 @@ const HOME_PROGRAMS: Program[] = [
       { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 15, cue: 'Warm the shoulders with small, steady circles.' },
       { name: 'Close-grip push-up', muscle: 'Triceps', equipment: 'Floor mat', sets: 3, reps: 6, rest: 60, cue: 'Keep hands just inside shoulder width and lower slowly. Use an incline to make it easier.' },
       { name: 'Self-resisted biceps curl', muscle: 'Biceps', equipment: 'No equipment', sets: 3, reps: 10, rest: 40, cue: 'Curl one arm while the opposite hand gently resists the movement. Change sides each set.' },
-      { name: 'Chair triceps dip', muscle: 'Triceps', equipment: 'Stable chair', sets: 2, reps: 8, rest: 60, cue: 'Use a chair that cannot slide. Keep shoulders comfortable and lower only through a pain-free range; skip if it irritates your shoulders.' }
+      { name: 'Incline close-grip push-up', muscle: 'Triceps', equipment: 'Wall or stable counter', sets: 2, reps: 10, rest: 45, cue: 'Place hands slightly inside shoulder width on a stable counter or wall. Keep elbows angled back and lower under control.' }
     ]
   }
 ];
@@ -304,6 +304,8 @@ const HOME_PROGRAMS: Program[] = [
 // Give every home routine a clear opening, six focused work movements and a short cool-down.
 const HOME_EXTRAS: Record<string, ProgramExercise[]> = {
   'home-full': [
+    { name: 'Sit-up', muscle: 'Core', equipment: 'Floor', sets: 1, reps: 12, rest: 20, cue: 'Lie on your back with knees bent. Curl your torso up smoothly without pulling your neck.' },
+    { name: 'Mountain climber', muscle: 'Core · Cardio', equipment: 'Floor', sets: 1, reps: 20, rest: 20, cue: 'Start in a high plank and alternate bringing each knee forward while keeping your shoulders over your hands.' },
     { name: 'Reverse lunge', muscle: 'Legs', equipment: 'No equipment', sets: 1, reps: 8, rest: 15, cue: 'Step back and lower under control. Alternate legs.' },
     { name: 'Wall push-up', muscle: 'Chest', equipment: 'Wall', sets: 1, reps: 12, rest: 15, cue: 'Place hands on a wall, lean in with a straight body, then press away.' }
   ],
@@ -712,7 +714,12 @@ export default function Page() {
     localStorage.setItem(STORE_KEY, JSON.stringify(next))
   }
   const startWorkout = (program: Program) => {
-    const next = buildWorkout(program, store?.sessions || [])
+    if (!store || !isPackageActive(store.profile)) {
+      setToast('Your membership has ended. Choose a package in Profile to continue.');
+      window.setTimeout(() => setToast(''), 3200);
+      return;
+    }
+    const next = buildWorkout(program, store.sessions)
     setActiveWorkout(next)
     setPausedWorkout(null)
     localStorage.setItem(ACTIVE_KEY, JSON.stringify(next))
@@ -749,7 +756,7 @@ export default function Page() {
     setPausedWorkout(null)
     localStorage.removeItem(ACTIVE_KEY)
     setTab('progress')
-    setToast('Workout saved. Every rep is on record.')
+    setToast(store.profile.packageType === 'daily' ? 'Workout saved. Your daily pass is active until midnight.' : 'Workout saved. Every rep is on record.')
     window.setTimeout(() => setToast(''), 2600)
   }
   const resetData = () => {
@@ -760,7 +767,7 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile, phone: String(next.profile?.phone || ''), memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && String(next.profile?.phone || '').trim()) },
+      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender || 'prefer_not_to_say', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))), ...((next.profile?.packageStart && next.profile?.packageEnd) ? {} : createPackageWindow(next.profile?.packageType || 'daily')) },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
@@ -774,7 +781,7 @@ export default function Page() {
   if (!store.profile.onboardingComplete) return <Onboarding initialProfile={store.profile} onComplete={(profile, firstLog) => persist({ ...store, profile, weightLogs: firstLog ? [...store.weightLogs.filter(item => item.date !== firstLog.date), firstLog].sort((a, b) => a.date.localeCompare(b.date)) : store.weightLogs })} />
 
   if (activeWorkout?.mode === 'home') {
-    return <HomeWorkoutPlayer workout={activeWorkout} themeDark={store.profile.themeDark} onChange={saveActive} onFinish={finishWorkout} onExit={() => { if (window.confirm('Pause this home workout and return to your member space? Your progress will remain saved.')) { setPausedWorkout(activeWorkout); setActiveWorkout(null); setTab('today'); } }} />
+    return <HomeWorkoutPlayer workout={activeWorkout} themeDark={store.profile.themeDark} gender={store.profile.gender} onChange={saveActive} onFinish={finishWorkout} onExit={() => { if (window.confirm('Pause this home workout and return to your member space? Your progress will remain saved.')) { setPausedWorkout(activeWorkout); setActiveWorkout(null); setTab('today'); } }} />
   }
 
   if (activeWorkout) {
@@ -783,6 +790,7 @@ export default function Page() {
       sessions={store.sessions}
       units={store.profile.units}
       themeDark={store.profile.themeDark}
+      gender={store.profile.gender}
       onChange={saveActive}
       onFinish={finishWorkout}
       onExit={() => {
@@ -822,8 +830,8 @@ export default function Page() {
           </button>
         </div>
         <main className="page-content">
-          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onWeight={() => setModal('weight')} onTrain={() => { setTrainView('home'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
-          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} initialView={trainView} />}
+          {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onTrain={() => { setTrainView('plans'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
+          {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} initialView={trainView} gender={store.profile.gender} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
           {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
         </main>
@@ -1037,7 +1045,7 @@ function Dashboard({ store, onStart, onTrain, pausedWorkout, onResume }: { store
   </>;
 }
 
-function TrainingPage({ store, onStart, onRepeat, initialView = 'plans' }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void; initialView?: 'plans' | 'home' | 'library' }) {
+function TrainingPage({ store, onStart, onRepeat, initialView = 'plans', gender }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void; initialView?: 'plans' | 'home' | 'library'; gender: Gender }) {
   const [view, setView] = useState<'plans' | 'home' | 'library'>(initialView);
   const [focus, setFocus] = useState('All');
   const [query, setQuery] = useState('');
@@ -1045,6 +1053,7 @@ function TrainingPage({ store, onStart, onRepeat, initialView = 'plans' }: { sto
   const categories = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
   const filteredExercises = EXERCISE_LIBRARY.filter(exercise => (focus === 'All' || exercise.muscle.toLowerCase().includes(focus.toLowerCase())) && (exercise.name.toLowerCase().includes(query.toLowerCase()) || exercise.equipment.toLowerCase().includes(query.toLowerCase())));
   const today = new Date();
+  const currentWeek = weekStart(today);
   const todayGymPlan = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
   const todayHomePlan = getHomeProgramForDay(today, store.profile);
   const startCustomSession = () => onStart({ id: 'open-gym-session', title: 'My own gym session', focus: 'Flexible training', level: store.profile.level, duration: 45, description: 'Build a session from the movement library.', mode: 'gym', exercises: [] });
@@ -1062,7 +1071,7 @@ function TrainingPage({ store, onStart, onRepeat, initialView = 'plans' }: { sto
       <div className="schedule-card">
         <div className="schedule-intro"><span>YOUR TRAINING GOAL</span><strong>{store.profile.goal.replace('_', ' ')}</strong><span>YOUR SPLIT</span><strong>{store.profile.splitStyle === 'focused' ? 'Focused muscle days' : store.profile.splitStyle === 'ppl' ? 'Push / Pull / Legs' : 'Upper / Lower'}</strong></div>
         <div className="schedule-days">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
-          const program = getProgramForDay(new Date(2026, 0, 5 + index), store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+          const program = getProgramForDay((() => { const date = new Date(currentWeek); date.setDate(date.getDate() + index); return date; })(), store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
           return <div key={day} className={program ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{program ? <Dumbbell size={14} /> : '—'}</i><small>{program ? program.title.replace(' day', '') : 'Rest'}</small></div>;
         })}</div>
       </div>
@@ -1072,37 +1081,38 @@ function TrainingPage({ store, onStart, onRepeat, initialView = 'plans' }: { sto
         const selected = plan?.id === program.id;
         const completed = store.sessions.filter(session => session.title === program.title).length;
         return <article className={selected ? 'program-card recommended-program' : 'program-card'} key={program.id}>
-          <div className="program-art"><img src={programImage(program)} alt={program.title + ' training'} loading="lazy" /><span>{program.focus.toUpperCase()}</span><div className="art-number">{String(gymPrograms.indexOf(program) + 1).padStart(2, '0')}</div></div>
+          <div className="program-art"><TrainingPhoto name={program.exercises[0]?.name || program.title} mode="gym" gender={gender} alt={program.title + ' gym training'} /><span>{program.focus.toUpperCase()}</span><div className="art-number">{String(gymPrograms.indexOf(program) + 1).padStart(2, '0')}</div></div>
           <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(program)}>{selected ? 'Start today' : 'Start'} <ArrowRight size={15} /></button></div></div>
         </article>;
       })}</div>
     </>}
     {view === 'home' && <>
-      <div className="home-workout-hero"><img src={PHOTO_URLS.home} alt="Bodyweight training at home" /><div><span className="eyebrow">NO GYM REQUIRED</span><h2>Keep your schedule wherever you are.</h2><p>Your home plan follows the same muscle-group focus as your gym week, with bodyweight alternatives and movement guidance.</p><strong>{todayHomePlan ? 'Today: ' + todayHomePlan.title : 'Today is a scheduled rest day'}</strong>{todayHomePlan && <button className="button primary-button" onClick={() => onStart(todayHomePlan)}>Start today at home <ArrowRight size={15} /></button>}</div></div>
+      <div className="home-workout-hero"><TrainingPhoto name="push-up" mode="home" gender={gender} alt="No-equipment bodyweight workout at home" /><div><span className="eyebrow">NO GYM REQUIRED</span><h2>Keep your schedule wherever you are.</h2><p>Your home plan follows the same muscle-group focus as your gym week, with bodyweight alternatives and movement guidance.</p><strong>{todayHomePlan ? 'Today: ' + todayHomePlan.title : 'Today is a scheduled rest day'}</strong>{todayHomePlan && <button className="button primary-button" onClick={() => onStart(todayHomePlan)}>Start today at home <ArrowRight size={15} /></button>}</div></div>
+      <div className="home-equipment-note"><strong>Bodyweight only.</strong><span>No dumbbells, machines, cables or resistance bands. Pull-ups need a bar, so they are not included in these no-equipment plans.</span></div>
       <div className="home-schedule-panel"><div className="section-heading"><div><span className="eyebrow">HOME TRAINING CALENDAR</span><h2>Your home workout week</h2></div><span className="subtle">Same split · no equipment</span></div>
         <div className="schedule-days">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
-          const plan = getHomeProgramForDay(new Date(2026, 0, 5 + index), store.profile);
+          const plan = getHomeProgramForDay((() => { const date = new Date(currentWeek); date.setDate(date.getDate() + index); return date; })(), store.profile);
           return <div key={day} className={plan ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{plan ? <Home size={14} /> : '—'}</i><small>{plan ? plan.focus.split(' · ')[0] : 'Rest'}</small></div>;
         })}</div>
       </div>
       <div className="duration-filter"><span>SESSION LENGTH</span>{[10, 20, 30].map(value => <button key={value} className={homeDuration === value ? 'selected' : ''} onClick={() => setHomeDuration(value)}>{value} min</button>)}</div>
       <div className="home-program-grid">{homePrograms.map(program => <article className="home-program-card" key={program.id}>
-        <div className="home-program-image"><img src={programImage(program)} alt={program.title} loading="lazy" /><span>{program.duration} MIN</span></div>
+        <div className="home-program-image"><TrainingPhoto name={program.exercises[0]?.name || program.title} mode="home" gender={gender} alt={program.title + ' bodyweight workout'} /><span>{program.duration} MIN</span></div>
         <div className="home-program-copy"><span className="eyebrow">BODYWEIGHT PLAN</span><h3>{program.title}</h3><p>{program.description}</p><div className="home-move-list">{program.exercises.slice(0, 4).map(exercise => <span key={exercise.name}>{exercise.name}</span>)}</div><button className="button primary-button" onClick={() => onStart(program)}>Start home workout <ArrowRight size={15} /></button></div>
       </article>)}</div>
     </>}
     {view === 'library' && <>
       <div className="library-toolbar"><div className="search-field"><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search exercises or equipment" /></div><span className="subtle">{filteredExercises.length} movements</span></div>
       <div className="filter-chips">{categories.map(category => <button key={category} className={focus === category ? 'selected' : ''} onClick={() => setFocus(category)}>{category}</button>)}</div>
-      <div className="exercise-library">{filteredExercises.map((exercise, index) => <article className="library-item" key={exercise.name}><img className="library-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} loading="lazy" /><div className="library-index">{String(index + 1).padStart(2, '0')}</div><div className="library-desc"><strong>{exercise.name}</strong><span>{exercise.muscle} · {exercise.equipment}</span><p>{exercise.cue}</p></div><div className="library-prescription"><strong>{exercise.sets} × {exercise.reps}</strong><span>{exercise.rest ? exercise.rest + ' sec rest' : 'Continuous'}</span></div></article>)}</div>
+      <div className="exercise-library">{filteredExercises.map((exercise, index) => <article className="library-item" key={exercise.name}><TrainingPhoto className="library-photo" name={exercise.name} mode="gym" gender={gender} alt={exercise.name + ' gym exercise'} /><div className="library-index">{String(index + 1).padStart(2, '0')}</div><div className="library-desc"><strong>{exercise.name}</strong><span>{exercise.muscle} · {exercise.equipment}</span><p>{exercise.cue}</p></div><div className="library-prescription"><strong>{exercise.sets} × {exercise.reps}</strong><span>{exercise.rest ? exercise.rest + ' sec rest' : 'Continuous'}</span></div></article>)}</div>
       {!filteredExercises.length && <div className="empty-state"><strong>No movement found.</strong><span>Try another exercise name or muscle group.</span></div>}
     </>}
     {view === 'home' && !todayHomePlan && <p className="panel-caption">It is your planned rest day. You can still choose a short optional session above when you feel ready.</p>}
   </>;
 }
 
-function HomeWorkoutPlayer({ workout, themeDark, onChange, onFinish, onExit }: {
-  workout: ActiveWorkout; themeDark: boolean; onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
+function HomeWorkoutPlayer({ workout, themeDark, gender, onChange, onFinish, onExit }: {
+  workout: ActiveWorkout; themeDark: boolean; gender: Gender; onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
 }) {
   const [index, setIndex] = useState(0);
   const [remaining, setRemaining] = useState(workout.exercises[0]?.durationSec || 40);
@@ -1167,20 +1177,20 @@ function HomeWorkoutPlayer({ workout, themeDark, onChange, onFinish, onExit }: {
       <div className="home-player-progress"><i style={{ width: progress + '%' }} /></div>
       {finished ? <section className="home-player-complete"><div className="home-player-complete-mark"><Check size={30} /></div><span className="eyebrow">ALL MOVEMENTS COMPLETE</span><h1>Good work.</h1><p>Your home session is ready to be saved to your training history.</p><button className="button primary-button" onClick={onFinish}>Save completed workout <CheckCircle2 size={17} /></button></section> : <>
         <div className="home-player-stage">
-          {phase === 'move' ? <img src={exerciseImage(current.name)} alt={current.name + ' movement reference'} /> : <div className="home-player-rest-art"><Timer size={46} /><span>RESET YOUR POSITION</span></div>}
+          {phase === 'move' ? <TrainingPhoto name={current.name} mode="home" gender={gender} alt={current.name + ' bodyweight movement reference'} /> : <div className="home-player-rest-art"><Timer size={46} /><span>RESET YOUR POSITION</span></div>}
           <div className="home-player-stage-label">{phase === 'rest' ? 'BREATHE · NEXT MOVE COMING UP' : 'MOVE ' + String(index + 1).padStart(2, '0') + ' / ' + String(total).padStart(2, '0')}</div>
         </div>
         <div className="home-player-timer"><strong>{phase === 'rest' ? 'REST' : current.name}</strong><span>{String(Math.floor(remaining / 60)).padStart(2, '0')}:{String(remaining % 60).padStart(2, '0')}</span><small>{phase === 'rest' ? 'Get ready for the next movement' : 'Work at a controlled pace · target ' + (current.sets[0]?.reps ?? 0) + ' reps'}</small></div>
         {phase === 'move' && <div className="home-player-instruction"><span className="eyebrow">HOW TO DO IT</span><p>{current.cue}</p><div><span>{current.equipment}</span><span>{current.muscle}</span></div></div>}
-        {next && <div className="home-player-next"><span className="eyebrow">UP NEXT</span><img src={exerciseImage(next.name)} alt="" /><div><strong>{next.name}</strong><span>{next.phase === 'cooldown' ? 'Cool-down' : next.muscle}</span></div><ChevronRight size={17} /></div>}
+        {next && <div className="home-player-next"><span className="eyebrow">UP NEXT</span><TrainingPhoto name={next.name} mode="home" gender={gender} alt={next.name + ' next bodyweight movement'} /><div><strong>{next.name}</strong><span>{next.phase === 'cooldown' ? 'Cool-down' : next.muscle}</span></div><ChevronRight size={17} /></div>}
         <div className="home-player-controls"><button className="button secondary-button" onClick={() => { setRunning(!running); }}><span>{running ? 'Pause' : 'Resume'}</span></button><button className="button primary-button" onClick={phase === 'rest' ? () => { const nextIndex = index + 1; if (nextIndex < total) { setIndex(nextIndex); setPhase('move'); setRemaining(workout.exercises[nextIndex]?.durationSec || 40); } } : skipMove}>{phase === 'rest' ? 'Skip rest' : 'Skip movement'} <ArrowRight size={15} /></button></div>
       </>}
     </main>
   </div>;
 }
 
-function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish, onExit }: {
-  workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean;
+function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, onFinish, onExit }: {
+  workout: ActiveWorkout; sessions: Session[]; units: Units; themeDark: boolean; gender: Gender;
   onChange: (workout: ActiveWorkout) => void; onFinish: () => void; onExit: () => void
 }) {
   const [now, setNow] = useState(Date.now())
@@ -1234,9 +1244,11 @@ function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish
       <div className="active-exercises">{workout.exercises.map((exercise, exerciseIndex) => {
         const previous = latestSet(sessions, exercise.name)
         const done = exercise.sets.filter(set => set.done).length
-        return <article className="active-exercise" key={exercise.id}>
-          <div className="active-exercise-head"><img className="runner-exercise-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
-          <p className="form-cue">{exercise.cue}</p>
+        const phaseLabel = exercise.phase === 'warmup' ? '01 · WARM-UP' : exercise.phase === 'cooldown' ? '03 · STRETCH & COOL-DOWN' : '02 · MAIN WORKOUT';
+        const previousPhase = workout.exercises[exerciseIndex - 1]?.phase || 'main';
+        return <Fragment key={exercise.id}>{(exerciseIndex === 0 || previousPhase !== (exercise.phase || 'main')) && <div className="exercise-phase-divider"><span>{phaseLabel}</span><i /></div>}<article className="active-exercise">
+          <div className="active-exercise-head"><TrainingPhoto className="runner-exercise-photo" name={exercise.name} mode="gym" gender={gender} alt={exercise.name + ' gym movement'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
+          <p className="form-cue">{exercise.cue}{exercise.durationSec ? ' · ' + (exercise.durationSec >= 60 ? Math.round(exercise.durationSec / 60) + ' min' : exercise.durationSec + ' sec') + ' guide' : ''}</p>
           {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
           {(() => {
             const previousSession = sessions.find(session => session.exercises.some(item => item.name === exercise.name))
@@ -1263,7 +1275,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish
           </div>
           <p className="set-help"><strong>RIR means “reps in reserve”.</strong> Estimate how many more good-form reps you could have completed. Use 2 if you are unsure; it is a guide, not a test.</p>
           <div className="exercise-actions"><button onClick={() => addSet(exercise)}><Plus size={14} /> Add set</button><button onClick={() => setRestUntil(Date.now() + exercise.restSeconds * 1000)}><Timer size={14} /> Rest {exercise.restSeconds}s</button></div>
-        </article>
+        </article></Fragment>
       })}</div>
       <button className="add-exercise" onClick={() => setShowPicker(true)}><Plus size={17} /> Add another exercise</button>
       <label className="field-label session-notes">Session notes<textarea value={workout.notes} onChange={event => onChange({ ...workout, notes: event.target.value })} placeholder="How did the session feel? Any changes to remember next time?" rows={3} /></label>
@@ -1343,47 +1355,47 @@ function WeightChart({ points, units }: { points: WeightLog[]; units: Units }) {
 function ProfilePage({ store, persist, resetData, onImport }: { store: Store; persist: (store: Store) => void; resetData: () => void; onImport: (store: Store) => void }) {
   const profile = store.profile;
   const updateProfile = (patch: Partial<Profile>) => persist({ ...store, profile: { ...profile, ...patch } });
+  const updatePackage = (type: PackageType) => updateProfile({ packageType: type, ...createPackageWindow(type) });
   const exportData = () => {
     const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = 'legrande-training-backup-' + dateKey() + '.json';
-    anchor.click();
-    URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
+    anchor.href = url; anchor.download = 'legrande-training-backup-' + dateKey() + '.json'; anchor.click(); URL.revokeObjectURL(url);
   };
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const file = event.target.files?.[0]; if (!file) return;
     try {
       const parsed = JSON.parse(await file.text()) as Store;
       if (!parsed || !parsed.profile || !Array.isArray(parsed.sessions)) throw new Error('Invalid backup');
-      onImport(parsed);
-      window.alert('Training backup imported.');
-    } catch {
-      window.alert('That file is not a valid LeGrande training backup.');
-    }
+      onImport(parsed); window.alert('Training backup imported.');
+    } catch { window.alert('That file is not a valid LeGrande training backup.'); }
     event.target.value = '';
   };
+  const bodyweight = latestBodyweight(store);
   return <>
-    <div className="page-intro"><div><span className="eyebrow">MEMBER SETTINGS</span><h1>Your profile.</h1><p>Update your details and keep your weekly training split aligned with your routine.</p></div><div className="intro-stamp"><UserRound size={23} /><span>LF / PROFILE</span></div></div>
+    <div className="page-intro"><div><span className="eyebrow">MEMBER SETTINGS</span><h1>Your profile.</h1><p>Keep your details and training split aligned with your goals.</p></div><div className="intro-stamp"><UserRound size={23} /><span>LF / PROFILE</span></div></div>
     <div className="profile-layout">
       <section className="panel profile-panel">
         <div className="profile-identity"><div className="profile-avatar">{profile.name.slice(0, 1).toUpperCase()}</div><div><span className="eyebrow">LEGRANDE MEMBER</span><h2>{profile.name}</h2><p>{profile.memberType === 'existing' ? 'Current member' : 'New member'} · {profile.phone}</p></div></div>
         <div className="profile-fields">
           <label className="field-label">Full name<input value={profile.name} onChange={event => updateProfile({ name: event.target.value })} /></label>
-          <label className="field-label">Phone number<input type="tel" inputMode="tel" value={profile.phone} onChange={event => updateProfile({ phone: event.target.value })} /></label>
+          <label className="field-label">Kenyan mobile number</label>
+          <div className="ke-phone-field"><span>+254</span><input type="tel" inputMode="numeric" value={phoneNationalPart(profile.phone)} onChange={event => updateProfile({ phone: normalizeKenyanPhone(event.target.value) })} maxLength={9} /></div>
           <label className="field-label">Member status<select value={profile.memberType} onChange={event => updateProfile({ memberType: event.target.value as MemberType })}><option value="existing">Current LeGrande member</option><option value="new">Joining LeGrande</option></select></label>
+          <label className="field-label">Gender<select value={profile.gender} onChange={event => updateProfile({ gender: event.target.value as Gender })}><option value="woman">Woman</option><option value="man">Man</option><option value="non_binary">Non-binary</option><option value="prefer_not_to_say">Prefer not to say</option></select></label>
           <label className="field-label">Primary goal<select value={profile.goal} onChange={event => updateProfile({ goal: event.target.value as Goal })}><option value="build_muscle">Build muscle</option><option value="strength">Get stronger</option><option value="fat_loss">Lose body fat</option><option value="general_fitness">General fitness</option></select></label>
           <label className="field-label">Training experience<select value={profile.level} onChange={event => updateProfile({ level: event.target.value as Level })}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
           <label className="field-label">Training split<select value={profile.splitStyle} onChange={event => updateProfile({ splitStyle: event.target.value as SplitStyle })}><option value="focused">Focused muscle days</option><option value="ppl">Push / Pull / Legs</option><option value="upper_lower">Upper / Lower</option></select></label>
           <div className="profile-setting"><div><strong>Training days</strong><span>Sessions per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
+          <label className="field-label">Current bodyweight ({profile.units === 'metric' ? 'kg' : 'lb'})<input type="number" min="1" step="0.1" value={bodyweight ? displayWeight(bodyweight, profile.units).toFixed(1) : ''} placeholder="Add current weight" onChange={event => { const kg = toKg(event.target.value, profile.units); if (kg > 0) persist({ ...store, profile: { ...profile, bodyweightKg: kg }, weightLogs: [...store.weightLogs.filter(item => item.date !== dateKey()), { date: dateKey(), kg }].sort((a, b) => a.date.localeCompare(b.date)) }); }} /></label>
+          <label className="field-label">Preferred gym start time<input type="time" value={profile.sessionStartTime} onChange={event => updateProfile({ sessionStartTime: event.target.value })} /></label>
+          <div className="profile-setting"><div><strong>Membership package</strong><span>Demo selection · payment handled by management</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
+          <div className="privacy-stat"><span>Package valid through</span><strong>{packageEndLabel(profile)}</strong></div>
           <div className="profile-setting"><div><strong>Measurement units</strong><span>Bodyweight and set loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
           <div className="profile-setting"><div><strong>Appearance</strong><span>Light or dark member space</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
         </div>
       </section>
       <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Local member profile</h2></div><ShieldCheck size={20} /></div>
-        <p>This preview stores your profile and training history in this browser only. A phone number is recorded for your member details, but it is not verified and there is no shared member database or cross-device sign-in yet.</p>
+        <p>Profile and training history stay in this browser. The Kenyan mobile number is stored but not verified. The management portal will confirm package payment and exact entitlement dates.</p>
         <div className="privacy-stat"><span>Storage mode</span><strong>On this device</strong></div><div className="privacy-stat"><span>Phone verification</span><strong>Not connected</strong></div>
         <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button>
         <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>

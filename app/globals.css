@@ -161,3 +161,47 @@
 .home-player-complete h1{font-size:42px;letter-spacing:-.07em;margin:0}
 .home-player-complete p{font-size:11px;color:#888;max-width:310px;line-height:1.6}
 @media(max-width:580px){.home-player-shell{padding:0 14px 22px}.home-player-header{height:60px}.home-player-main{padding-top:18px}.home-player-controls{grid-template-columns:1fr 1.25fr}}
+
+/* Mobile-first member settings, package status and workout phase markers */
+.ke-phone-field{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:0 13px;height:44px;margin-top:7px}
+.ke-phone-field>span{font:600 12px 'DM Mono',monospace;color:var(--ink);padding-right:10px;border-right:1px solid var(--line)}
+.ke-phone-field input{border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;padding:0!important;min-width:0;flex:1;color:var(--ink);height:100%}
+.phone-help{font-size:9px;color:var(--muted);margin:-9px 0 8px}
+.gender-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:8px 0 15px}.gender-choice-grid .choice-card{min-height:42px;padding:10px 12px}
+.package-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:13px 0 16px}
+.package-choice{min-height:83px;padding:13px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;text-align:left}
+.package-choice strong,.package-choice span{display:block}.package-choice strong{font-size:12px;margin-bottom:7px}.package-choice span{font-size:9px;line-height:1.5;color:var(--muted)}
+.package-choice.selected{border-color:var(--accent);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--accent)}
+.package-mini-note,.package-status-strip{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 15px;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin:0 0 15px}
+.package-mini-note span,.package-status-strip strong{font-size:10px;font-weight:800}.package-mini-note strong,.package-status-strip small{font-size:9px;color:var(--muted)}
+.package-status-strip{margin:0 0 14px}.package-status-strip>div{display:grid;gap:4px}.package-status-mark{font:9px 'DM Mono',monospace;letter-spacing:.12em;border:1px solid var(--line);border-radius:99px;padding:7px 9px}
+.package-expired-panel,.rest-day-panel{border:1px solid var(--line);background:var(--surface);border-radius:18px;padding:24px;margin:0 0 17px}
+.package-expired-panel h2,.rest-day-panel h2{font-size:22px;letter-spacing:-.05em;margin:7px 0}.package-expired-panel p,.rest-day-panel p{font-size:11px;line-height:1.65;color:var(--muted);max-width:540px}
+.today-phase-groups{display:grid;gap:14px}.today-phase-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:8px 0;border-bottom:1px solid var(--line)}
+.today-phase-heading strong{font:9px 'DM Mono',monospace;letter-spacing:.08em}.today-phase-heading span{font-size:8px;color:var(--muted)}
+.exercise-phase-divider{display:flex;align-items:center;gap:12px;margin:8px 0 0}.exercise-phase-divider span{font:9px 'DM Mono',monospace;letter-spacing:.13em;color:var(--muted);white-space:nowrap}.exercise-phase-divider i{height:1px;background:var(--line);flex:1}
+.training-photo-fallback{background:linear-gradient(135deg,#161616,#444);color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:7px;overflow:hidden}
+.training-photo-fallback span{font:7px 'DM Mono',monospace;letter-spacing:.13em;color:#ddd}
+.program-art>.training-photo-fallback,.home-program-image>.training-photo-fallback{position:absolute;inset:0;width:100%;height:100%}
+.home-workout-hero>.training-photo-fallback{width:100%;height:100%;min-height:210px}
+.today-plan-item>.training-photo-fallback{width:82px;height:76px;border-radius:11px;flex-shrink:0}
+.home-player-stage>.training-photo-fallback{width:100%;height:100%}.home-player-next>.training-photo-fallback{width:46px;height:42px;border-radius:8px}
+.home-equipment-note{display:flex;flex-direction:column;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);margin:0 0 16px}
+.home-equipment-note strong{font-size:10px}.home-equipment-note span{font-size:9px;color:var(--muted);line-height:1.55}
+.training-mode-tabs{gap:5px;margin:0 0 22px}.training-mode-tabs button{flex:1;min-width:0;text-align:center;padding:11px 7px 13px;font-size:10px;white-space:normal;line-height:1.25}
+.dark .package-choice,.dark .package-mini-note,.dark .package-status-strip,.dark .package-expired-panel,.dark .rest-day-panel,.dark .home-equipment-note{background:#171717;border-color:#444;color:#f5f5f5}
+.dark .package-choice span,.dark .package-mini-note strong,.dark .package-status-strip small,.dark .home-equipment-note span{color:#c2c2c2}.dark .exercise-phase-divider i{background:#4a4a4a}
+@media(max-width:850px){.program-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-card{grid-template-columns:1fr;gap:12px}.schedule-intro{border-right:0;border-bottom:1px solid var(--line);padding-bottom:9px;display:grid;grid-template-columns:1fr 1fr}.schedule-intro strong{margin:0}.dashboard-focus-grid{grid-template-columns:1fr}}
+@media(max-width:620px){
+  .view-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;overflow:visible}
+  .view-tabs button{padding:10px 4px 12px;font-size:9px;min-width:0;overflow-wrap:anywhere}
+  .schedule-card{padding:13px 11px}.schedule-days{gap:3px}.schedule-day i{width:29px;height:29px}.schedule-day small{font-size:7px}
+  .program-grid{grid-template-columns:1fr}
+  .gender-choice-grid,.package-choice-grid,.member-type-grid,.split-choice-grid,.baseline-grid{grid-template-columns:1fr 1fr}
+  .onboarding-panel{padding:22px 18px}.today-plan-item{grid-template-columns:70px minmax(0,1fr);gap:9px}
+  .today-plan-item img,.today-plan-item>.training-photo-fallback{width:70px;height:68px}
+  .training-mode-tabs button{font-size:9px;padding-left:3px;padding-right:3px}
+  .home-workout-hero>div{min-width:0}.home-workout-hero h2{font-size:22px}
+  .runner-exercise-photo,.runner-exercise-photo.training-photo-fallback{width:58px;height:56px}
+  .library-photo,.library-photo.training-photo-fallback{width:64px;height:58px}
+}
