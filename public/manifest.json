@@ -7,8 +7,13 @@
   "orientation": "portrait-primary",
   "background_color": "#f6f6f4",
   "theme_color": "#111111",
-  "description": "Your training, progress and recovery companion at LeGrande Fitness Center.",
+  "description": "Your LeGrande gym and home workout plans, progress and training history.",
   "icons": [
-    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+    {
+      "src": "/logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
   ]
 }

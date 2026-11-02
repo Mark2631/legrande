@@ -1,4 +1,4 @@
-const CACHE = 'legrande-member-v3'
+const CACHE = 'legrande-member-v4'
 const CORE = ['/manifest.json', '/logo.svg']
 
 self.addEventListener('install', event => {

@@ -58,3 +58,66 @@
 .set-help{font-size:8px;line-height:1.55;color:var(--muted);margin:8px 0 8px 35px}
 .set-help strong{color:var(--ink)}
 @media(max-width:640px){.custom-session-row{align-items:flex-start;flex-direction:column}.custom-session-row .button{width:100%}.set-help{margin-left:0}}
+
+/* Member registration, focused workout plans and movement photography */
+.member-type-grid,.split-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:9px 0 16px}
+.split-choice-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.member-type-grid .choice-card,.split-choice-grid .choice-card{min-height:82px;text-align:left;padding:13px;border:1px solid var(--line);background:var(--surface-2);color:var(--ink);border-radius:13px}
+.member-type-grid .choice-card strong,.split-choice-grid .choice-card strong{display:block;font-size:12px;margin-bottom:6px}
+.member-type-grid .choice-card span,.split-choice-grid .choice-card span{display:block;color:var(--muted);font-size:10px;line-height:1.5}
+.member-type-grid .choice-card.selected,.split-choice-grid .choice-card.selected{border-color:var(--accent);background:var(--surface-3);box-shadow:inset 0 0 0 1px var(--accent)}
+.input-hint{margin:-7px 0 12px;color:var(--danger);font-size:10px}
+.baseline-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.split-preview{display:flex;flex-direction:column;gap:6px;margin:14px 0;padding:14px;border:1px solid var(--line);background:var(--surface-2);border-radius:12px}
+.split-preview strong{font-size:11px}.split-preview span{font-size:12px;color:var(--muted);line-height:1.5}
+.dashboard-focus-grid{grid-template-columns:minmax(270px,.78fr) minmax(0,1.22fr);align-items:start}
+.today-plan-list{display:grid;gap:0}
+.today-plan-item{display:grid;grid-template-columns:82px minmax(0,1fr);gap:12px;padding:10px 0;border-bottom:1px solid var(--line);align-items:start}
+.today-plan-item:first-child{padding-top:0}.today-plan-item:last-child{border-bottom:0;padding-bottom:0}
+.today-plan-item img{width:82px;height:76px;object-fit:cover;border-radius:11px;background:var(--surface-3)}
+.today-plan-item strong{display:block;font-size:11px;line-height:1.35;margin:3px 0}
+.today-plan-item p{font-size:9px;line-height:1.55;color:var(--muted);margin:0 0 5px}
+.today-plan-item small,.today-plan-number{font-size:8px;color:var(--muted);font-family:'DM Mono',monospace}
+.today-plan-action{margin-top:12px}
+.rest-day-note{padding:14px 2px 8px}.rest-day-note strong{font-size:12px}.rest-day-note p{font-size:10px;color:var(--muted);line-height:1.6}
+.program-art{position:relative;overflow:hidden;min-height:146px;background:#222}
+.program-art>img,.home-program-image>img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover}
+.program-art>span,.home-program-image>span{position:relative;z-index:1;display:inline-block}
+.program-art .art-number{position:relative;z-index:1}
+.program-art:after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.7),rgba(0,0,0,.12));pointer-events:none}
+.program-art>span,.program-art .art-number{z-index:2;color:#fff}
+.recommended-program{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.training-mode-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.home-workout-hero{position:relative;display:grid;grid-template-columns:minmax(180px,.8fr) minmax(0,1.2fr);overflow:hidden;border-radius:18px;background:var(--surface);border:1px solid var(--line);margin:8px 0 18px;min-height:210px}
+.home-workout-hero>img{width:100%;height:100%;min-height:210px;object-fit:cover}
+.home-workout-hero>div{padding:24px;align-self:center}
+.home-workout-hero h2{font-size:clamp(21px,2.3vw,29px);letter-spacing:-.05em;margin:8px 0}
+.home-workout-hero p{font-size:11px;color:var(--muted);line-height:1.65;margin:0 0 12px}
+.home-workout-hero strong{display:block;font-size:10px;margin-bottom:12px}
+.home-schedule-panel{padding:17px 19px;background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-bottom:22px}
+.duration-filter{display:flex;align-items:center;gap:8px;margin:16px 0}
+.duration-filter>span{font:9px 'DM Mono',monospace;color:var(--muted);letter-spacing:.12em;margin-right:auto}
+.duration-filter button{border:1px solid var(--line);background:var(--surface);color:var(--muted);padding:8px 12px;border-radius:9px;font-size:10px}
+.duration-filter button.selected{background:var(--accent);color:var(--accent-contrast);border-color:var(--accent)}
+.home-program-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.home-program-card{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:var(--surface);min-width:0}
+.home-program-image{height:150px;position:relative;background:#222;overflow:hidden}
+.home-program-image:after{content:'';position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.6),transparent 65%)}
+.home-program-image>span{position:absolute;left:14px;bottom:12px;color:#fff;font:9px 'DM Mono',monospace;letter-spacing:.12em}
+.home-program-copy{padding:16px}
+.home-program-copy h3{font-size:16px;margin:5px 0}
+.home-program-copy p{font-size:10px;line-height:1.6;color:var(--muted);min-height:32px}
+.home-move-list{display:grid;gap:5px;margin:12px 0 15px}
+.home-move-list span{font-size:9px;color:var(--muted);padding-left:11px;position:relative}
+.home-move-list span:before{content:'•';position:absolute;left:0;color:var(--ink)}
+.library-photo{width:76px;height:66px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.library-item{display:flex;align-items:center;gap:12px}
+.runner-exercise-photo{width:76px;height:64px;object-fit:cover;border-radius:10px;flex-shrink:0}
+.active-exercise-head{align-items:center}
+.active-exercise-title{min-width:0}
+.dark .today-plan-item p,.dark .home-program-copy p,.dark .home-move-list span,.dark .split-preview span,.dark .home-workout-hero p,.dark .program-body p{color:#c4c4c4}
+.dark .today-plan-item small,.dark .today-plan-number{color:#b8b8b8}
+.dark .member-type-grid .choice-card,.dark .split-choice-grid .choice-card,.dark .split-preview{background:#1d1d1d;color:#f5f5f5;border-color:#494949}
+.dark .member-type-grid .choice-card.selected,.dark .split-choice-grid .choice-card.selected{background:#2b2b2b;border-color:#fff}
+@media(max-width:850px){.dashboard-focus-grid{grid-template-columns:1fr}.split-choice-grid{grid-template-columns:1fr 1fr}.home-program-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.member-type-grid,.split-choice-grid,.baseline-grid{grid-template-columns:1fr 1fr}.home-workout-hero{grid-template-columns:1fr}.home-workout-hero>img{height:145px;min-height:145px}.home-workout-hero>div{padding:17px}.home-program-grid{grid-template-columns:1fr}.today-plan-item{grid-template-columns:74px minmax(0,1fr);gap:10px}.today-plan-item img{width:74px;height:72px}.runner-exercise-photo{width:58px;height:56px}.library-photo{width:64px;height:58px}.training-mode-tabs{gap:4px}.duration-filter{flex-wrap:wrap}.duration-filter>span{width:100%}.split-choice-grid .choice-card{min-height:92px}}

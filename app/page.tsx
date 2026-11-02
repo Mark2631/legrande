@@ -4,17 +4,22 @@ import { useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import {
   Activity, ArrowLeft, ArrowRight, Award, BarChart3, CalendarDays, Check,
-  CheckCircle2, ChevronRight, Clock3, Dumbbell, Droplets, Flame, HeartPulse,
-  History, Home, Info, Moon, Plus, RotateCcw, Save, Search, ShieldCheck, Sparkles,
-  Sun, Target, Timer, TrendingUp, Trophy, UserRound, Utensils, Weight, X, Zap
+  CheckCircle2, ChevronRight, Clock3, Dumbbell, Flame,
+  History, Home, Info, Moon, Plus, RotateCcw, Save, Search, ShieldCheck,
+  Sun, Target, Timer, TrendingUp, Trophy, UserRound, Weight, X, Zap
 } from 'lucide-react'
 
 type Goal = 'build_muscle' | 'strength' | 'fat_loss' | 'general_fitness'
 type Level = 'beginner' | 'intermediate' | 'advanced'
 type Units = 'metric' | 'imperial'
-type Tab = 'today' | 'train' | 'progress' | 'fuel' | 'profile'
+type Tab = 'today' | 'train' | 'progress' | 'profile'
+type MemberType = 'new' | 'existing'
+type SplitStyle = 'focused' | 'ppl' | 'upper_lower'
 type Profile = {
   name: string
+  phone: string
+  memberType: MemberType
+  splitStyle: SplitStyle
   goal: Goal
   level: Level
   weeklyTarget: number
@@ -22,7 +27,6 @@ type Profile = {
   themeDark: boolean
   onboardingComplete: boolean
   heightCm: number | null
-  proteinTarget: number
 }
 type SetEntry = { id: string; reps: number; weightKg: number; rir: number; done: boolean }
 type WorkoutExercise = {
@@ -39,6 +43,7 @@ type ActiveWorkout = {
   title: string
   focus: string
   startedAt: number
+  mode?: 'gym' | 'home'
   exercises: WorkoutExercise[]
   notes: string
 }
@@ -49,34 +54,32 @@ type Session = {
   finishedAt: number
   title: string
   focus: string
+  mode?: 'gym' | 'home'
   durationMin: number
   exercises: WorkoutExercise[]
   notes: string
 }
 type WeightLog = { date: string; kg: number }
 type MeasurementLog = { date: string; waistCm?: number; chestCm?: number; armCm?: number; thighCm?: number }
-type DailyLog = { date: string; waterCups: number; proteinGrams: number; sleepHours?: number; energy?: number; soreness?: number; note?: string }
 type Store = {
   version: 2
   profile: Profile
   sessions: Session[]
   weightLogs: WeightLog[]
   measurementLogs: MeasurementLog[]
-  dailyLogs: DailyLog[]
 }
 type ProgramExercise = { name: string; muscle: string; equipment: string; sets: number; reps: number; rest: number; cue: string }
-type Program = { id: string; title: string; focus: string; level: Level; duration: number; description: string; exercises: ProgramExercise[] }
+type Program = { id: string; title: string; focus: string; level: Level; duration: number; description: string; mode?: 'gym' | 'home'; exercises: ProgramExercise[] }
 
 const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
-  name: '', goal: 'build_muscle', level: 'beginner', weeklyTarget: 4,
-  units: 'metric', themeDark: false, onboardingComplete: false,
-  heightCm: null, proteinTarget: 0
+  name: '', phone: '', memberType: 'new', splitStyle: 'focused',
+  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4,
+  units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
 }
 const emptyStore: Store = {
-  version: 2, profile: defaultProfile, sessions: [], weightLogs: [],
-  measurementLogs: [], dailyLogs: []
+  version: 2, profile: defaultProfile, sessions: [], weightLogs: [], measurementLogs: []
 }
 
 const PROGRAMS: Program[] = [
@@ -168,6 +171,46 @@ const PROGRAMS: Program[] = [
       { name: 'Plank', muscle: 'Core', equipment: 'Bodyweight', sets: 2, reps: 30, rest: 45, cue: 'Keep your hips level and breathe steadily.' }
     ]
   }
+  ,{
+    id: 'chest', title: 'Chest day', focus: 'Chest · Triceps', level: 'beginner', duration: 45,
+    description: 'A focused chest session with a small amount of triceps assistance.',
+    exercises: [
+      { name: 'Machine chest press', muscle: 'Chest', equipment: 'Machine', sets: 3, reps: 10, rest: 90, cue: 'Set the handles around mid-chest. Keep your shoulders down and press without bouncing.' },
+      { name: 'Incline dumbbell press', muscle: 'Upper chest', equipment: 'Dumbbells', sets: 3, reps: 10, rest: 90, cue: 'Keep your shoulder blades supported. Lower the dumbbells slowly to a comfortable depth.' },
+      { name: 'Cable chest fly', muscle: 'Chest', equipment: 'Cable', sets: 2, reps: 12, rest: 60, cue: 'Keep a soft bend in your elbows and bring your hands together in a wide arc.' },
+      { name: 'Cable triceps pushdown', muscle: 'Triceps', equipment: 'Cable', sets: 2, reps: 12, rest: 60, cue: 'Keep your elbows close to your ribs. Move your forearms, not your shoulders.' }
+    ]
+  },
+  {
+    id: 'back', title: 'Back day', focus: 'Back · Biceps', level: 'beginner', duration: 45,
+    description: 'A pulling-focused session for your lats, mid-back and biceps.',
+    exercises: [
+      { name: 'Lat pulldown', muscle: 'Lats', equipment: 'Cable', sets: 3, reps: 10, rest: 90, cue: 'Start with arms long, then drive your elbows down. Avoid leaning far back.' },
+      { name: 'Seated cable row', muscle: 'Mid back', equipment: 'Cable', sets: 3, reps: 10, rest: 90, cue: 'Sit tall, pull toward your lower ribs and return the handle slowly.' },
+      { name: 'Chest-supported row', muscle: 'Mid back', equipment: 'Dumbbells', sets: 2, reps: 10, rest: 75, cue: 'Keep your chest on the bench and pull your elbows toward your hips.' },
+      { name: 'Dumbbell curl', muscle: 'Biceps', equipment: 'Dumbbells', sets: 2, reps: 12, rest: 60, cue: 'Keep your elbows near your sides. Lower each dumbbell without swinging.' }
+    ]
+  },
+  {
+    id: 'shoulders', title: 'Shoulder day', focus: 'Shoulders · Rear delts', level: 'beginner', duration: 40,
+    description: 'A controlled shoulder session for pressing strength and side-delt development.',
+    exercises: [
+      { name: 'Seated dumbbell shoulder press', muscle: 'Shoulders', equipment: 'Dumbbells', sets: 3, reps: 10, rest: 90, cue: 'Keep your back supported and ribs down. Press smoothly without forcing the lockout.' },
+      { name: 'Dumbbell lateral raise', muscle: 'Side delts', equipment: 'Dumbbells', sets: 3, reps: 12, rest: 60, cue: 'Lead with your elbows. Raise to about shoulder height without swinging your torso.' },
+      { name: 'Cable face pull', muscle: 'Rear delts', equipment: 'Cable', sets: 2, reps: 15, rest: 60, cue: 'Pull the rope toward eye level and separate your hands at the finish.' },
+      { name: 'Reverse dumbbell fly', muscle: 'Rear delts', equipment: 'Dumbbells', sets: 2, reps: 12, rest: 60, cue: 'Hinge forward with a neutral back. Open your arms without shrugging.' }
+    ]
+  },
+  {
+    id: 'arms', title: 'Arms day', focus: 'Biceps · Triceps', level: 'beginner', duration: 40,
+    description: 'A dedicated arm day with direct biceps and triceps work.',
+    exercises: [
+      { name: 'Dumbbell curl', muscle: 'Biceps', equipment: 'Dumbbells', sets: 3, reps: 10, rest: 60, cue: 'Keep upper arms still and lower the weights slowly.' },
+      { name: 'Hammer curl', muscle: 'Brachialis', equipment: 'Dumbbells', sets: 2, reps: 12, rest: 60, cue: 'Keep palms facing inward and avoid swinging.' },
+      { name: 'Cable triceps pushdown', muscle: 'Triceps', equipment: 'Cable', sets: 3, reps: 12, rest: 60, cue: 'Pin your elbows near your sides and straighten your arms under control.' },
+      { name: 'Overhead dumbbell triceps extension', muscle: 'Triceps', equipment: 'Dumbbell', sets: 2, reps: 10, rest: 60, cue: 'Keep your elbows pointing forward. Lower behind your head only as far as comfortable.' }
+    ]
+  }
 ]
 
 const EXERCISE_LIBRARY = [
@@ -182,12 +225,100 @@ const EXERCISE_LIBRARY = [
   { name: 'Stationary bike', muscle: 'Conditioning', equipment: 'Cardio', sets: 1, reps: 10, rest: 0, cue: 'Start at a manageable pace and build gradually.' }
 ].filter((exercise, index, array) => array.findIndex(item => item.name === exercise.name) === index)
 
+
+const HOME_PROGRAMS: Program[] = [
+  {
+    id: 'home-full', title: '10-minute full body', focus: 'Full body · No equipment', level: 'beginner', duration: 10, mode: 'home',
+    description: 'A short, simple circuit for days when time is limited.',
+    exercises: [
+      { name: 'March in place', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 45, rest: 15, cue: 'Stand tall and march briskly, lifting your knees comfortably.' },
+      { name: 'Bodyweight squat', muscle: 'Legs', equipment: 'No equipment', sets: 2, reps: 12, rest: 20, cue: 'Sit your hips back, keep your whole foot planted and stand tall.' },
+      { name: 'Incline push-up', muscle: 'Chest', equipment: 'Wall or stable counter', sets: 2, reps: 10, rest: 20, cue: 'Place hands on a stable raised surface. Keep your body in one straight line as you lower your chest.' },
+      { name: 'Glute bridge', muscle: 'Glutes', equipment: 'Floor mat', sets: 2, reps: 12, rest: 20, cue: 'Lie on your back, bend your knees and lift your hips by squeezing your glutes.' },
+      { name: 'Bird dog', muscle: 'Core', equipment: 'Floor mat', sets: 2, reps: 8, rest: 20, cue: 'On hands and knees, extend opposite arm and leg without rotating your hips.' }
+    ]
+  },
+  {
+    id: 'home-chest', title: 'Chest at home', focus: 'Chest · Triceps · No equipment', level: 'beginner', duration: 20, mode: 'home',
+    description: 'A chest-focused session with floor and incline push-up variations.',
+    exercises: [
+      { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 15, cue: 'Make small controlled circles, then gradually widen them.' },
+      { name: 'Incline push-up', muscle: 'Chest', equipment: 'Wall or stable counter', sets: 3, reps: 10, rest: 45, cue: 'Use a stable counter or bench. Keep your body straight and lower your chest toward your hands.' },
+      { name: 'Standard push-up', muscle: 'Chest', equipment: 'Floor mat', sets: 3, reps: 8, rest: 60, cue: 'Hands just wider than shoulders. Brace your body and lower as one unit; use knees if needed.' },
+      { name: 'Close-grip push-up', muscle: 'Triceps', equipment: 'Floor mat', sets: 2, reps: 6, rest: 60, cue: 'Place hands slightly inside shoulder width. Keep elbows angled back and use a comfortable range.' }
+    ]
+  },
+  {
+    id: 'home-back', title: 'Back at home', focus: 'Back · Core · No equipment', level: 'beginner', duration: 20, mode: 'home',
+    description: 'A no-equipment back and posture session using controlled floor movements.',
+    exercises: [
+      { name: 'Cat-cow', muscle: 'Warm-up', equipment: 'Floor mat', sets: 1, reps: 10, rest: 15, cue: 'On hands and knees, gently round and extend your spine without forcing the range.' },
+      { name: 'Superman hold', muscle: 'Back', equipment: 'Floor mat', sets: 3, reps: 20, rest: 35, cue: 'Lie face down and lift arms and legs slightly. Keep your neck neutral; a small lift is enough.' },
+      { name: 'Reverse snow angel', muscle: 'Upper back', equipment: 'Floor mat', sets: 3, reps: 10, rest: 35, cue: 'Lie face down, lift your hands slightly and sweep your arms from your sides toward overhead.' },
+      { name: 'Bird dog', muscle: 'Core', equipment: 'Floor mat', sets: 2, reps: 8, rest: 30, cue: 'Extend opposite arm and leg while keeping your trunk still.' }
+    ]
+  },
+  {
+    id: 'home-legs', title: 'Legs at home', focus: 'Quads · Glutes · No equipment', level: 'beginner', duration: 20, mode: 'home',
+    description: 'A lower-body day built around squats, lunges and glute work.',
+    exercises: [
+      { name: 'March in place', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 45, rest: 15, cue: 'March at an easy pace and gradually increase the rhythm.' },
+      { name: 'Bodyweight squat', muscle: 'Quads', equipment: 'No equipment', sets: 3, reps: 12, rest: 45, cue: 'Keep your heels down, sit between your hips and stand by pushing through the whole foot.' },
+      { name: 'Reverse lunge', muscle: 'Quads · Glutes', equipment: 'No equipment', sets: 2, reps: 8, rest: 45, cue: 'Step back, lower both knees comfortably and push through the front foot to stand.' },
+      { name: 'Glute bridge', muscle: 'Glutes', equipment: 'Floor mat', sets: 3, reps: 12, rest: 35, cue: 'Lift your hips until shoulders, hips and knees form a line. Do not over-arch your lower back.' },
+      { name: 'Standing calf raise', muscle: 'Calves', equipment: 'No equipment', sets: 2, reps: 15, rest: 30, cue: 'Rise onto the balls of your feet, pause, then lower slowly.' }
+    ]
+  },
+  {
+    id: 'home-shoulders', title: 'Shoulders at home', focus: 'Shoulders · Core · No equipment', level: 'beginner', duration: 20, mode: 'home',
+    description: 'Shoulder stability and bodyweight pressing without gym machines.',
+    exercises: [
+      { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 15, cue: 'Move through small circles first, then slightly larger circles.' },
+      { name: 'Pike push-up', muscle: 'Shoulders', equipment: 'Floor mat', sets: 3, reps: 6, rest: 60, cue: 'Start in an inverted V. Bend your elbows and lower your head between your hands; shorten the range if needed.' },
+      { name: 'Plank shoulder tap', muscle: 'Shoulders · Core', equipment: 'Floor mat', sets: 3, reps: 12, rest: 45, cue: 'In a high plank, tap the opposite shoulder while keeping your hips as still as possible.' },
+      { name: 'Reverse snow angel', muscle: 'Rear delts', equipment: 'Floor mat', sets: 2, reps: 10, rest: 35, cue: 'Lie face down and sweep your arms slowly while keeping them just off the floor.' }
+    ]
+  },
+  {
+    id: 'home-arms', title: 'Arms at home', focus: 'Biceps · Triceps · No equipment', level: 'beginner', duration: 20, mode: 'home',
+    description: 'Arm-focused bodyweight movements. Use a sturdy chair only for the optional dip.',
+    exercises: [
+      { name: 'Arm circles', muscle: 'Warm-up', equipment: 'No equipment', sets: 1, reps: 30, rest: 15, cue: 'Warm the shoulders with small, steady circles.' },
+      { name: 'Close-grip push-up', muscle: 'Triceps', equipment: 'Floor mat', sets: 3, reps: 6, rest: 60, cue: 'Keep hands just inside shoulder width and lower slowly. Use an incline to make it easier.' },
+      { name: 'Self-resisted biceps curl', muscle: 'Biceps', equipment: 'No equipment', sets: 3, reps: 10, rest: 40, cue: 'Curl one arm while the opposite hand gently resists the movement. Change sides each set.' },
+      { name: 'Chair triceps dip', muscle: 'Triceps', equipment: 'Stable chair', sets: 2, reps: 8, rest: 60, cue: 'Use a chair that cannot slide. Keep shoulders comfortable and lower only through a pain-free range; skip if it irritates your shoulders.' }
+    ]
+  }
+];
+const PHOTO_URLS = {
+  gym: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80',
+  chest: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80',
+  back: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&q=80',
+  legs: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
+  shoulders: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1a?auto=format&fit=crop&w=900&q=80',
+  arms: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=900&q=80',
+  home: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80'
+};
+function exerciseImage(name: string) {
+  const value = name.toLowerCase();
+  if (/squat|lunge|leg press|leg curl|calf|glute|romanian|deadlift/.test(value)) return PHOTO_URLS.legs;
+  if (/lateral raise|shoulder|pike|face pull|reverse fly|snow angel|arm circle/.test(value)) return PHOTO_URLS.shoulders;
+  if (/triceps|pushdown|dip|close-grip/.test(value)) return PHOTO_URLS.arms;
+  if (/curl/.test(value)) return PHOTO_URLS.arms;
+  if (/lat|row|superman|bird dog|cat-cow/.test(value)) return PHOTO_URLS.back;
+  if (/push-up|chest|fly/.test(value)) return PHOTO_URLS.chest;
+  if (/plank|march|mountain|jumping|dead bug/.test(value)) return PHOTO_URLS.home;
+  return PHOTO_URLS.gym;
+}
+function programImage(program: Program) {
+  return exerciseImage(program.exercises[0]?.name || program.focus);
+}
+
 const NAV_ITEMS = [
-  { id: 'today' as Tab, label: 'Overview', icon: Home },
-  { id: 'train' as Tab, label: 'Training', icon: Dumbbell },
+  { id: 'today' as Tab, label: 'Today', icon: Home },
+  { id: 'train' as Tab, label: 'Train', icon: Dumbbell },
   { id: 'progress' as Tab, label: 'Progress', icon: TrendingUp },
-  { id: 'fuel' as Tab, label: 'Fuel & recovery', icon: HeartPulse },
-  { id: 'profile' as Tab, label: 'My profile', icon: UserRound }
+  { id: 'profile' as Tab, label: 'Profile', icon: UserRound }
 ]
 
 function makeId() {
@@ -243,26 +374,56 @@ function bestStreak(sessions: Session[], target: number) {
   })
   return best
 }
-function getProgramForDay(date: Date, target: number, level: Level = 'beginner') {
-  const day = (date.getDay() + 6) % 7
-  const beginnerSchedules: Record<number, { days: number[]; ids: string[] }> = {
-    3: { days: [0, 2, 4], ids: ['full-a', 'full-b', 'full-c'] },
-    4: { days: [0, 1, 3, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a'] },
-    5: { days: [0, 1, 2, 4, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a', 'full-b'] },
-    6: { days: [0, 1, 2, 3, 4, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a', 'full-b', 'full-c'] }
-  }
-  const experiencedSchedules: Record<number, { days: number[]; ids: string[] }> = {
-    3: { days: [0, 2, 4], ids: ['full-a', 'full-b', 'full-c'] },
-    4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] },
-    5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'upper', 'lower'] },
-    6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
-  }
-  const schedules = level === 'beginner' ? beginnerSchedules : experiencedSchedules
-  const schedule = schedules[target] || schedules[4]
-  const index = schedule.days.indexOf(day)
-  if (index < 0) return null
-  return PROGRAMS.find(program => program.id === schedule.ids[index]) || null
+function getProgramForDay(date: Date, target: number, level: Level = 'beginner', splitStyle: SplitStyle = 'focused', goal: Goal = 'build_muscle') {
+  const day = (date.getDay() + 6) % 7;
+  const schedules: Record<SplitStyle, Record<number, { days: number[]; ids: string[] }>> = {
+    focused: {
+      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
+      4: { days: [0, 1, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders'] },
+      5: { days: [0, 1, 2, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
+    },
+    ppl: {
+      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
+      4: { days: [0, 1, 3, 5], ids: ['push', 'pull', 'legs', 'upper'] },
+      5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
+    },
+    upper_lower: {
+      3: { days: [0, 2, 4], ids: ['upper', 'lower', 'upper'] },
+      4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] },
+      5: { days: [0, 1, 2, 4, 5], ids: ['upper', 'lower', 'push', 'pull', 'legs'] },
+      6: { days: [0, 1, 2, 3, 4, 5], ids: ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'] }
+    }
+  };
+  const schedule = schedules[splitStyle]?.[target] || schedules.focused[4];
+  const index = schedule.days.indexOf(day);
+  if (index < 0) return null;
+  const base = PROGRAMS.find(program => program.id === schedule.ids[index]);
+  if (!base) return null;
+  const beginnerMultiplier = level === 'beginner' ? 0.75 : level === 'advanced' ? 1.15 : 1;
+  return {
+    ...base,
+    level,
+    exercises: base.exercises.map(exercise => ({
+      ...exercise,
+      sets: Math.max(2, Math.min(5, Math.round(exercise.sets * beginnerMultiplier))),
+      reps: goal === 'strength' ? Math.max(5, exercise.reps - 2) : goal === 'fat_loss' ? exercise.reps + 2 : exercise.reps,
+      rest: goal === 'strength' ? Math.max(exercise.rest, 120) : goal === 'fat_loss' ? Math.max(30, exercise.rest - 15) : exercise.rest
+    }))
+  };
 }
+function getHomeProgramForDay(date: Date, profile: Profile) {
+  const gymPlan = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
+  if (!gymPlan) return null;
+  const id = /leg|lower/i.test(gymPlan.focus) ? 'home-legs'
+    : /back|pull/i.test(gymPlan.focus) ? 'home-back'
+      : /shoulder/i.test(gymPlan.focus) ? 'home-shoulders'
+        : /arm|biceps|triceps/i.test(gymPlan.focus) ? 'home-arms'
+          : /chest|push/i.test(gymPlan.focus) ? 'home-chest' : 'home-full';
+  return HOME_PROGRAMS.find(program => program.id === id) || HOME_PROGRAMS[0];
+}
+
 function latestSet(sessions: Session[], exerciseName: string) {
   for (const session of sessions) {
     const exercise = session.exercises.find(item => item.name === exerciseName)
@@ -279,6 +440,7 @@ function programFromSession(session: Session, level: Level): Program {
     title: 'Repeat · ' + session.title,
     focus: session.focus,
     level,
+    mode: session.mode || 'gym',
     duration: Math.max(20, session.durationMin),
     description: 'A copy of your last completed session. Previous loads will be prefilled where available.',
     exercises: session.exercises.map(exercise => ({
@@ -295,7 +457,7 @@ function programFromSession(session: Session, level: Level): Program {
 
 function buildWorkout(program: Program, sessions: Session[]): ActiveWorkout {
   return {
-    id: makeId(), title: program.title, focus: program.focus, startedAt: Date.now(), notes: '',
+    id: makeId(), title: program.title, focus: program.focus, startedAt: Date.now(), mode: program.mode || 'gym', notes: '',
     exercises: program.exercises.map(item => {
       const previous = latestSet(sessions, item.name)
       return {
@@ -333,68 +495,69 @@ function toKg(value: string | number, units: Units) {
   const number = Number(value)
   return units === 'imperial' ? number / 2.20462 : number
 }
-function getDailyLog(store: Store, date = dateKey()): DailyLog {
-  return store.dailyLogs.find(log => log.date === date) || { date, waterCups: 0, proteinGrams: 0 }
-}
+
 function safeReadStore(): Store {
   try {
-    const current = localStorage.getItem(STORE_KEY)
+    const current = localStorage.getItem(STORE_KEY);
     if (current) {
-      const parsed = JSON.parse(current) as Partial<Store>
+      const parsed = JSON.parse(current) as Partial<Store>;
+      const savedProfile = (parsed.profile || {}) as Partial<Profile>;
+      const profile: Profile = {
+        ...defaultProfile, ...savedProfile,
+        phone: String(savedProfile.phone || ''),
+        memberType: savedProfile.memberType || 'existing',
+        splitStyle: savedProfile.splitStyle || 'focused',
+        onboardingComplete: Boolean(savedProfile.onboardingComplete && String(savedProfile.phone || '').trim())
+      };
       return {
-        version: 2,
-        profile: { ...defaultProfile, ...(parsed.profile || {}) },
+        version: 2, profile,
         sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
         weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [],
-        measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [],
-        dailyLogs: Array.isArray(parsed.dailyLogs) ? parsed.dailyLogs : []
-      }
+        measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : []
+      };
     }
-    const legacyText = localStorage.getItem('lgg:v1')
+    const legacyText = localStorage.getItem('lgg:v1');
     if (legacyText) {
       const legacy = JSON.parse(legacyText) as {
-        profile?: Partial<Profile>
-        sessions?: Array<{ id?: string; date: string; type?: string; durationMin?: number; exercises?: Array<{ name: string; sets: Array<{ reps: number; weightKg: number }> }> }>
-        weightLogs?: WeightLog[]
-        measurementLogs?: MeasurementLog[]
-      }
+        profile?: Partial<Profile> & { goal?: string };
+        sessions?: Array<{ id?: string; date: string; type?: string; durationMin?: number; exercises?: Array<{ name: string; sets: Array<{ reps: number; weightKg: number }> }> }>;
+        weightLogs?: WeightLog[];
+        measurementLogs?: MeasurementLog[];
+      };
       const migratedSessions: Session[] = (legacy.sessions || []).map(item => {
-        const startedAt = new Date(item.date + 'T08:00:00').getTime()
+        const startedAt = new Date(item.date + 'T08:00:00').getTime();
         return {
-          id: item.id || makeId(), date: item.date, startedAt,
-          finishedAt: startedAt + (item.durationMin || 45) * 60000,
+          id: item.id || makeId(), date: item.date, startedAt, finishedAt: startedAt + (item.durationMin || 45) * 60000,
           title: item.type === 'home' ? 'Home workout' : 'Gym session',
-          focus: 'Previous session', durationMin: item.durationMin || 45,
+          focus: 'Previous session', mode: item.type === 'home' ? 'home' : 'gym', durationMin: item.durationMin || 45,
           exercises: (item.exercises || []).map(exercise => ({
-            id: makeId(), name: exercise.name, muscle: 'General', equipment: 'Previous log',
-            cue: '', restSeconds: 60,
-            sets: exercise.sets.map(set => ({ id: makeId(), reps: set.reps, weightKg: set.weightKg, rir: 2, done: true }))
+            id: makeId(), name: exercise.name, muscle: 'General', equipment: 'Previous log', cue: '', restSeconds: 60,
+            sets: (exercise.sets || []).map(set => ({ id: makeId(), reps: set.reps, weightKg: set.weightKg, rir: 2, done: true }))
           })), notes: ''
-        }
-      })
-      const oldGoal = String(legacy.profile?.goal || '')
-      const migratedGoal: Goal = oldGoal === 'lose_fat'
-        ? 'fat_loss'
-        : oldGoal === 'stay_consistent'
-          ? 'general_fitness'
-          : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness'
-            ? oldGoal
-            : 'build_muscle'
+        };
+      });
+      const oldGoal = String(legacy.profile?.goal || '');
+      const migratedGoal: Goal = oldGoal === 'lose_fat' ? 'fat_loss'
+        : oldGoal === 'stay_consistent' ? 'general_fitness'
+          : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness' ? oldGoal : 'build_muscle';
+      const phone = String(legacy.profile?.phone || '');
+      const profile: Profile = {
+        ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
+        memberType: legacy.profile?.memberType || 'existing',
+        splitStyle: legacy.profile?.splitStyle || 'focused',
+        onboardingComplete: Boolean(phone.trim())
+      };
       const migrated: Store = {
-        version: 2,
-        profile: { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, onboardingComplete: true },
-        sessions: migratedSessions,
-        weightLogs: legacy.weightLogs || [],
-        measurementLogs: legacy.measurementLogs || [],
-        dailyLogs: []
-      }
-      localStorage.setItem(STORE_KEY, JSON.stringify(migrated))
-      return migrated
+        version: 2, profile, sessions: migratedSessions,
+        weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || []
+      };
+      localStorage.setItem(STORE_KEY, JSON.stringify(migrated));
+      return migrated;
     }
   } catch {
-    return { ...emptyStore, profile: { ...defaultProfile } }
+    return { ...emptyStore, profile: { ...defaultProfile } };
   }
-  return { ...emptyStore, profile: { ...defaultProfile } }
+  return { ...emptyStore, profile: { ...defaultProfile } };
 }
 
 export default function Page() {
@@ -420,12 +583,6 @@ export default function Page() {
   const persist = (next: Store) => {
     setStore(next)
     localStorage.setItem(STORE_KEY, JSON.stringify(next))
-  }
-  const updateDaily = (patch: Partial<DailyLog>) => {
-    if (!store) return
-    const today = getDailyLog(store)
-    const nextLog = { ...today, ...patch, date: dateKey() }
-    persist({ ...store, dailyLogs: [nextLog, ...store.dailyLogs.filter(log => log.date !== dateKey())] })
   }
   const startWorkout = (program: Program) => {
     const next = buildWorkout(program, store?.sessions || [])
@@ -454,7 +611,7 @@ export default function Page() {
     const session: Session = {
       id: activeWorkout.id, date: dateKey(new Date(activeWorkout.startedAt)),
       startedAt: activeWorkout.startedAt, finishedAt,
-      title: activeWorkout.title, focus: activeWorkout.focus,
+      title: activeWorkout.title, focus: activeWorkout.focus, mode: activeWorkout.mode || 'gym',
       durationMin: Math.max(1, Math.round((finishedAt - activeWorkout.startedAt) / 60000)),
       exercises: activeWorkout.exercises.map(exercise => ({
         ...exercise, sets: exercise.sets.map(set => ({ ...set }))
@@ -476,11 +633,10 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile },
+      version: 2, profile: { ...defaultProfile, ...next.profile, phone: String(next.profile?.phone || ''), memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && String(next.profile?.phone || '').trim()) },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
-      dailyLogs: Array.isArray(next.dailyLogs) ? next.dailyLogs : []
     }
     persist(normalized)
     setActiveWorkout(null)
@@ -488,7 +644,7 @@ export default function Page() {
   }
 
   if (!store) return <div className="loading-screen"><div className="brand-mark">LF</div><p>Preparing your training space</p></div>
-  if (!store.profile.onboardingComplete) return <Onboarding onComplete={(profile, firstLog) => persist({ ...emptyStore, profile, weightLogs: firstLog ? [firstLog] : [] })} />
+  if (!store.profile.onboardingComplete) return <Onboarding onComplete={(profile, firstLog) => persist({ ...store, profile, weightLogs: firstLog ? [...store.weightLogs.filter(item => item.date !== firstLog.date), firstLog].sort((a, b) => a.date.localeCompare(b.date)) : store.weightLogs })} />
 
   if (activeWorkout) {
     return <WorkoutRunner
@@ -538,7 +694,6 @@ export default function Page() {
           {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onWeight={() => setModal('weight')} onTrain={() => setTab('train')} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
           {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
-          {tab === 'fuel' && <FuelPage store={store} updateDaily={updateDaily} />}
           {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
         </main>
       </div>
@@ -549,7 +704,7 @@ export default function Page() {
       <nav className="mobile-nav">
         {NAV_ITEMS.map(item => {
           const Icon = item.icon
-          return <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={19} /><span>{item.id === 'fuel' ? 'Fuel' : item.id === 'progress' ? 'Progress' : item.id === 'profile' ? 'Profile' : item.id === 'train' ? 'Train' : 'Today'}</span></button>
+          return <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><Icon size={19} /><span>{item.id === 'progress' ? 'Progress' : item.id === 'profile' ? 'Profile' : item.id === 'train' ? 'Train' : 'Today'}</span></button>
         })}
       </nav>
     </div>
@@ -564,195 +719,205 @@ function Brand() {
 }
 
 function Onboarding({ onComplete }: { onComplete: (profile: Profile, firstLog?: WeightLog) => void }) {
-  const [step, setStep] = useState(1)
-  const [profile, setProfile] = useState<Profile>({ ...defaultProfile })
-  const [weight, setWeight] = useState('')
-  const [height, setHeight] = useState('')
-  const update = (patch: Partial<Profile>) => setProfile(current => ({ ...current, ...patch }))
-  const canContinue = step === 1 ? profile.name.trim().length > 1 : step === 2 ? (!weight || Number(weight) > 0) : true
+  const [step, setStep] = useState(1);
+  const [profile, setProfile] = useState<Profile>({ ...defaultProfile });
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
+  const update = (patch: Partial<Profile>) => setProfile(current => ({ ...current, ...patch }));
+  const validPhone = profile.phone.replace(/\D/g, '').length >= 9;
+  const canContinue = step === 1 ? profile.name.trim().length > 1 && validPhone : step === 2 ? (!weight || Number(weight) > 0) && (!height || Number(height) > 0) : true;
   const finish = () => {
-    const firstLog: WeightLog | undefined = Number(weight) > 0
-      ? { date: dateKey(), kg: toKg(weight, profile.units) }
-      : undefined
+    const firstLog: WeightLog | undefined = Number(weight) > 0 ? { date: dateKey(), kg: toKg(weight, profile.units) } : undefined;
     onComplete({
       ...profile,
       heightCm: Number(height) > 0 ? (profile.units === 'imperial' ? Number(height) * 2.54 : Number(height)) : null,
       onboardingComplete: true,
       goal: profile.goal || 'build_muscle'
-    }, firstLog)
-  }
+    }, firstLog);
+  };
   return <div className="onboarding-screen">
     <div className="onboarding-panel">
       <div className="onboard-brand"><Brand /><span className="onboard-step">STEP {step} OF 3</span></div>
       <div className="onboard-progress"><i style={{ width: (step / 3 * 100) + '%' }} /></div>
       {step === 1 && <>
-        <span className="eyebrow">YOUR TRAINING STARTS HERE</span>
-        <h1>Build a routine that <em>belongs to you.</em></h1>
-        <p className="onboard-lede">A simple training space for the work you put in, the numbers you improve, and the habits you keep.</p>
-        <label className="field-label">What should we call you?<input autoFocus value={profile.name} onChange={event => update({ name: event.target.value })} placeholder="Your first name" maxLength={42} /></label>
-        <span className="field-label">What are you working towards?</span>
+        <span className="eyebrow">LEGRANDE MEMBER REGISTRATION</span>
+        <h1>Your training starts <em>here.</em></h1>
+        <p className="onboard-lede">Set up your member profile. Current members can bring their existing training style; new members get a guided schedule.</p>
+        <label className="field-label">Full name<input autoFocus value={profile.name} onChange={event => update({ name: event.target.value })} placeholder="Your name" maxLength={60} /></label>
+        <label className="field-label">Phone number<input type="tel" inputMode="tel" autoComplete="tel" value={profile.phone} onChange={event => update({ phone: event.target.value })} placeholder="+254 7XX XXX XXX" maxLength={18} /></label>
+        <span className="field-label">Your membership</span>
+        <div className="member-type-grid">
+          <button type="button" className={profile.memberType === 'existing' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'existing' })}><strong>Current member</strong><span>I already train at LeGrande.</span></button>
+          <button type="button" className={profile.memberType === 'new' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ memberType: 'new' })}><strong>Joining now</strong><span>I'm setting up my first routine.</span></button>
+        </div>
+        {!validPhone && profile.phone.length > 0 && <p className="input-hint">Enter a complete phone number, including the area code.</p>}
+      </>}
+      {step === 2 && <>
+        <span className="eyebrow">YOUR TRAINING GOAL</span>
+        <h1>What are you <em>working towards?</em></h1>
+        <p className="onboard-lede">We use this to set sensible starting repetitions, rest times and training volume.</p>
         <div className="choice-grid">
           {[
             ['build_muscle', 'Build muscle', 'Size, balance and control'],
             ['strength', 'Get stronger', 'Track the lifts that matter'],
             ['fat_loss', 'Lose body fat', 'Build repeatable habits'],
             ['general_fitness', 'Feel fitter', 'Fitness for everyday life']
-          ].map(([value, title, description]) => <button key={value} className={profile.goal === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ goal: value as Goal })}><strong>{title}</strong><span>{description}</span></button>)}
+          ].map(([value, title, description]) => <button type="button" key={value} className={profile.goal === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ goal: value as Goal })}><strong>{title}</strong><span>{description}</span></button>)}
         </div>
         <span className="field-label">Training experience</span>
         <div className="segmented">
-          <button className={profile.level === 'beginner' ? 'selected' : ''} onClick={() => update({ level: 'beginner' })}>Beginner</button>
-          <button className={profile.level === 'intermediate' ? 'selected' : ''} onClick={() => update({ level: 'intermediate' })}>Intermediate</button>
-          <button className={profile.level === 'advanced' ? 'selected' : ''} onClick={() => update({ level: 'advanced' })}>Advanced</button>
+          <button type="button" className={profile.level === 'beginner' ? 'selected' : ''} onClick={() => update({ level: 'beginner' })}>Beginner</button>
+          <button type="button" className={profile.level === 'intermediate' ? 'selected' : ''} onClick={() => update({ level: 'intermediate' })}>Intermediate</button>
+          <button type="button" className={profile.level === 'advanced' ? 'selected' : ''} onClick={() => update({ level: 'advanced' })}>Advanced</button>
         </div>
-      </>}
-      {step === 2 && <>
-        <span className="eyebrow">A STARTING POINT, NOT A SCORE</span>
-        <h1>Set your <em>baseline.</em></h1>
-        <p className="onboard-lede">These details help you read your own progress. You can skip the numbers you do not want to track.</p>
-        <label className="field-label">Current weight <span className="unit-label">{profile.units === 'metric' ? 'KG' : 'LB'}</span><input type="number" inputMode="decimal" value={weight} onChange={event => setWeight(event.target.value)} placeholder="e.g. 72" min="1" /></label>
-        <div className="segmented"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => update({ units: 'metric' })}>Metric · kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => update({ units: 'imperial' })}>Imperial · lb</button></div>
-        <label className="field-label">Height <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={height} onChange={event => setHeight(event.target.value)} placeholder={profile.units === 'metric' ? 'cm' : 'inches'} /></label>
-        <div className="target-picker"><div><strong>Training days per week</strong><span>Choose a realistic rhythm. You can change this later.</span></div><div className="stepper"><button onClick={() => update({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => update({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
+        <div className="baseline-grid">
+          <label className="field-label">Weight <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={weight} onChange={event => setWeight(event.target.value)} placeholder="kg" min="1" /></label>
+          <label className="field-label">Height <span className="optional">OPTIONAL</span><input type="number" inputMode="decimal" value={height} onChange={event => setHeight(event.target.value)} placeholder="cm" min="1" /></label>
+        </div>
+        <div className="segmented"><button type="button" className={profile.units === 'metric' ? 'selected' : ''} onClick={() => update({ units: 'metric' })}>Metric · kg</button><button type="button" className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => update({ units: 'imperial' })}>Imperial · lb</button></div>
       </>}
       {step === 3 && <>
-        <span className="eyebrow">YOUR FIRST TRAINING BLOCK</span>
-        <h1>Make the next <em>rep count.</em></h1>
-        <p className="onboard-lede">Your member space is ready. Start with a plan, record your sets, and adjust the process as you learn what works.</p>
-        <div className="onboard-summary">
-          <div><span>MEMBER</span><strong>{profile.name}</strong></div>
-          <div><span>PRIMARY GOAL</span><strong>{profile.goal.replace('_', ' ')}</strong></div>
-          <div><span>TRAINING RHYTHM</span><strong>{profile.weeklyTarget} days / week</strong></div>
-          <div><span>EXPERIENCE</span><strong>{profile.level}</strong></div>
+        <span className="eyebrow">YOUR WEEKLY SPLIT</span>
+        <h1>{profile.memberType === 'existing' ? 'Match your current' : 'Build your first'} <em>routine.</em></h1>
+        <p className="onboard-lede">{profile.memberType === 'existing' ? 'Choose the structure closest to your current gym routine. You can edit it later in Profile.' : 'We will keep each day focused so you are not moving randomly between machines and muscle groups.'}</p>
+        <div className="target-picker"><div><strong>Training days per week</strong><span>Choose a realistic schedule. Rest days are built in.</span></div><div className="stepper"><button type="button" onClick={() => update({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button type="button" onClick={() => update({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
+        <div className="split-choice-grid">
+          <button type="button" className={profile.splitStyle === 'focused' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'focused' })}><strong>Focused muscle days</strong><span>Chest · Back · Legs · Shoulders · Arms</span></button>
+          <button type="button" className={profile.splitStyle === 'ppl' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'ppl' })}><strong>Push / Pull / Legs</strong><span>Pressing · Pulling · Lower body</span></button>
+          <button type="button" className={profile.splitStyle === 'upper_lower' ? 'choice-card selected' : 'choice-card'} onClick={() => update({ splitStyle: 'upper_lower' })}><strong>Upper / Lower</strong><span>Alternate upper-body and leg sessions</span></button>
         </div>
-        <span className="privacy-line"><ShieldCheck size={16} /> Your profile and workouts are stored only in this browser.</span>
+        <div className="split-preview"><strong>Your week at a glance</strong><span>{profile.weeklyTarget === 3 ? 'Push · Pull · Legs' : profile.weeklyTarget === 4 ? 'Chest · Back · Legs · Shoulders' : profile.weeklyTarget === 5 ? 'Chest · Back · Legs · Shoulders · Arms' : 'Push · Pull · Legs · Push · Pull · Legs'}</span></div>
+        <p className="privacy-line"><ShieldCheck size={16} /> Profile details and workout logs stay in this browser preview.</p>
       </>}
       <div className="onboard-actions">
         {step > 1 && <button className="button quiet" onClick={() => setStep(step - 1)}><ArrowLeft size={16} /> Back</button>}
-        <button className="button primary-button" disabled={!canContinue} onClick={() => step < 3 ? setStep(step + 1) : finish()}>{step === 3 ? 'Enter member space' : 'Continue'} <ArrowRight size={16} /></button>
+        <button className="button primary-button" disabled={!canContinue} onClick={() => step < 3 ? setStep(step + 1) : finish()}>{step === 3 ? 'Create member profile' : 'Continue'} <ArrowRight size={16} /></button>
       </div>
     </div>
-    <div className="onboard-visual"><div className="visual-label">LEGRANDE / TRAINING CULTURE</div><div className="visual-copy"><span>CONSISTENCY OVER INTENSITY.</span><h2>Strong habits.<br /><em>Stronger you.</em></h2><p>Progress is built one good session at a time.</p></div><div className="visual-foot"><span>01 — SHOW UP</span><span>02 — TRACK IT</span><span>03 — BUILD</span></div></div>
-  </div>
+    <div className="onboard-visual"><div className="visual-label">LEGRANDE / TRAINING CULTURE</div><div className="visual-copy"><span>CONSISTENCY OVER INTENSITY.</span><h2>Strong habits.<br /><em>Stronger you.</em></h2><p>Progress is built one good session at a time.</p></div><div className="visual-foot"><span>01 — SHOW UP</span><span>02 — TRAIN WITH FOCUS</span><span>03 — BUILD</span></div></div>
+  </div>;
 }
 
 function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume }: { store: Store; onStart: (program: Program) => void; onWeight: () => void; onTrain: () => void; pausedWorkout: ActiveWorkout | null; onResume: (workout: ActiveWorkout) => void }) {
-  const today = new Date()
-  const firstName = store.profile.name.trim().split(/\s+/)[0]
-  const hour = today.getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const scheduled = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level)
-  const week = weekSessions(store.sessions)
-  const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100)
-  const streak = currentStreak(store.sessions, store.profile.weeklyTarget)
-  const recent = store.sessions.slice(0, 3)
-  const daily = getDailyLog(store)
+  const today = new Date();
+  const firstName = store.profile.name.trim().split(/\s+/)[0];
+  const hour = today.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const scheduled = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+  const week = weekSessions(store.sessions);
+  const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100);
+  const streak = currentStreak(store.sessions, store.profile.weeklyTarget);
+  const recent = store.sessions.slice(0, 3);
   return <>
-    <div className="welcome-header"><div><span className="eyebrow">{formatDate(today).toUpperCase()}</span><h1>{greeting}, {firstName}.</h1><p>One session at a time. Keep building.</p></div><div className="welcome-mark"><span>LF</span><small>MEMBER</small></div></div>
+    <div className="welcome-header"><div><span className="eyebrow">{formatDate(today).toUpperCase()}</span><h1>{greeting}, {firstName}.</h1><p>One focused session at a time. Keep building.</p></div><div className="welcome-mark"><span>LF</span><small>MEMBER</small></div></div>
     <section className="hero-card">
       <div className="hero-overlay" />
       <div className="hero-content">
-        <span className="hero-kicker"><i /> {scheduled ? 'YOUR TRAINING PLAN' : 'RECOVERY IS TRAINING TOO'}</span>
-        <p className="hero-label">{scheduled ? scheduled.focus.toUpperCase() + ' · ' + scheduled.duration + ' MIN' : 'REST & RESET'}</p>
-        <h2>{scheduled ? scheduled.title : 'Make room to recover.'}</h2>
-        <p>{scheduled ? scheduled.description : 'Your plan has a rest day today. Eat well, move gently, and let your work settle.'}</p>
-        <button className="button primary-button" onClick={scheduled ? () => onStart(scheduled) : onTrain}>{scheduled ? <><Dumbbell size={17} /> Start this session</> : <>Browse training plans <ArrowRight size={17} /></>}</button>
+        <span className="hero-kicker"><i /> {scheduled ? 'TODAY’S WORKOUT' : 'REST DAY'}</span>
+        <p className="hero-label">{scheduled ? scheduled.focus.toUpperCase() + ' · ' + scheduled.duration + ' MIN' : 'RESET & RETURN STRONGER'}</p>
+        <h2>{scheduled ? scheduled.title : 'Today is a rest day.'}</h2>
+        <p>{scheduled ? scheduled.description : 'Your schedule has no gym session today. Use the home workout area for an optional short movement session, or take the rest day.'}</p>
+        <button className="button primary-button" onClick={scheduled ? () => onStart(scheduled) : onTrain}>{scheduled ? <><Dumbbell size={17} /> Start today’s workout</> : <>Open home workouts <ArrowRight size={17} /></>}</button>
       </div>
-      <div className="hero-side-note"><span>TRAINING / {String(today.getDate()).padStart(2, '0')}</span><strong>SHOW UP<br />FOR YOURSELF.</strong></div>
+      <div className="hero-side-note"><span>LEGRANDE / {String(today.getDate()).padStart(2, '0')}</span><strong>TRAIN WITH<br />INTENTION.</strong></div>
     </section>
-
     {pausedWorkout && <div className="resume-banner"><div><span className="eyebrow">SESSION PAUSED</span><strong>{pausedWorkout.title}</strong><small>Your sets are saved on this device.</small></div><button className="button primary-button" onClick={() => onResume(pausedWorkout)}>Resume workout <ArrowRight size={15} /></button></div>}
-
     <div className="metric-row">
       <div className="metric-card"><div className="metric-icon"><CalendarDays size={17} /></div><span>Sessions this week</span><strong>{week.length}<small> / {store.profile.weeklyTarget}</small></strong><div className="metric-progress"><i style={{ width: progress + '%' }} /></div></div>
       <div className="metric-card"><div className="metric-icon"><Flame size={17} /></div><span>Consistency streak</span><strong>{streak}<small> {streak === 1 ? 'week' : 'weeks'}</small></strong><p>{streak ? 'You have a rhythm. Protect it.' : 'Start with one good week.'}</p></div>
       <div className="metric-card"><div className="metric-icon"><TrendingUp size={17} /></div><span>Total sessions</span><strong>{store.sessions.length}<small> logged</small></strong><p>Every session has a place.</p></div>
       <div className="metric-card"><div className="metric-icon"><Zap size={17} /></div><span>Training volume</span><strong>{Math.round(totalVolume(store.sessions)).toLocaleString()}<small> kg</small></strong><p>Completed sets only.</p></div>
     </div>
-
-    <div className="content-grid">
+    <div className="content-grid dashboard-focus-grid">
       <section className="panel week-panel">
         <div className="section-heading"><div><span className="eyebrow">YOUR RHYTHM</span><h2>This week</h2></div><span className="subtle">{week.length} of {store.profile.weeklyTarget} sessions</span></div>
         <div className="week-days">{Array.from({ length: 7 }, (_, index) => {
-          const day = weekStart(today)
-          day.setDate(day.getDate() + index)
-          const key = dateKey(day)
-          const done = store.sessions.some(session => session.date === key)
-          const isToday = key === dateKey(today)
-          return <div key={key} className={isToday ? 'week-day today' : 'week-day'}><span>{day.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span><i className={done ? 'done' : ''}>{done ? <Check size={13} /> : day.getDate()}</i><small>{done ? 'Done' : isToday ? 'Today' : day.toLocaleDateString('en', { weekday: 'short' })}</small></div>
+          const day = weekStart(today);
+          day.setDate(day.getDate() + index);
+          const key = dateKey(day);
+          const done = store.sessions.some(session => session.date === key);
+          const isToday = key === dateKey(today);
+          return <div key={key} className={isToday ? 'week-day today' : 'week-day'}><span>{day.toLocaleDateString('en', { weekday: 'short' }).slice(0, 1)}</span><i className={done ? 'done' : ''}>{done ? <Check size={13} /> : day.getDate()}</i><small>{done ? 'Done' : isToday ? 'Today' : day.toLocaleDateString('en', { weekday: 'short' })}</small></div>;
         })}</div>
         <div className="week-footer"><span>{Math.max(0, store.profile.weeklyTarget - week.length)} sessions left to reach your weekly target</span><div className="progress-track"><i style={{ width: progress + '%' }} /></div></div>
       </section>
-      <section className="panel focus-panel">
-        <div className="section-heading"><div><span className="eyebrow">TODAY'S CHECK-IN</span><h2>Look after the basics</h2></div><HeartPulse size={19} /></div>
-        <div className="daily-check"><div className="check-symbol"><Droplets size={18} /></div><div><strong>Hydration</strong><span>{daily.waterCups} of 8 cups logged</span></div><div className="check-track"><i style={{ width: Math.min(100, daily.waterCups / 8 * 100) + '%' }} /></div></div>
-        <div className="daily-check"><div className="check-symbol"><Utensils size={18} /></div><div><strong>Protein</strong><span>{daily.proteinGrams ? daily.proteinGrams + ' g recorded' : 'No log yet'}</span></div><button className="text-action" onClick={onTrain}>View plan</button></div>
-        <div className="focus-note"><Info size={15} /><span>Track what helps you recover. Your routine should fit real life, not the other way around.</span></div>
+      <section className="panel today-plan-panel">
+        <div className="section-heading"><div><span className="eyebrow">TODAY’S MOVEMENTS</span><h2>{scheduled ? scheduled.focus : 'Rest day'}</h2></div><span className="subtle">{scheduled ? scheduled.exercises.length + ' exercises' : 'No session planned'}</span></div>
+        {scheduled ? <div className="today-plan-list">{scheduled.exercises.slice(0, 5).map((exercise, index) => <article className="today-plan-item" key={exercise.name}>
+          <img src={exerciseImage(exercise.name)} alt={exercise.name + ' exercise demonstration'} loading="lazy" />
+          <div><span className="today-plan-number">{String(index + 1).padStart(2, '0')} · {exercise.equipment}</span><strong>{exercise.name}</strong><p>{exercise.cue}</p><small>{exercise.sets} sets · {exercise.reps} reps</small></div>
+        </article>)}</div> : <div className="rest-day-note"><strong>Keep the schedule intentional.</strong><p>Rest today, or open Home workouts for a short bodyweight alternative that fits your week.</p><button className="text-action" onClick={onTrain}>Browse home workouts <ArrowRight size={14} /></button></div>}
+        <button className="text-action today-plan-action" onClick={onTrain}>View gym and home schedules <ArrowRight size={14} /></button>
       </section>
     </div>
-
-    <section className="section-block">
-      <div className="section-heading"><div><span className="eyebrow">THE WORK ADDS UP</span><h2>Recent sessions</h2></div><button className="text-action" onClick={onTrain}>Explore training <ArrowRight size={15} /></button></div>
-      {recent.length ? <div className="recent-list">{recent.map(session => <div className="recent-item" key={session.id}><div className="recent-symbol"><Dumbbell size={17} /></div><div className="recent-main"><strong>{session.title}</strong><span>{session.focus} · {new Date(session.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></div><div className="recent-data"><strong>{prettyDuration(session.durationMin)}</strong><span>{session.exercises.reduce((sum, exercise) => sum + exercise.sets.filter(set => set.done).length, 0)} sets</span></div><CheckCircle2 className="recent-check" size={17} /></div>)}</div> : <div className="empty-state"><div className="empty-icon"><Dumbbell size={23} /></div><strong>Your training history starts here.</strong><span>Finish a workout to see your sessions, set counts and progress build up.</span><button className="button secondary-button" onClick={onTrain}>Explore your first workout</button></div>}
+    <section className="section-block"><div className="section-heading"><div><span className="eyebrow">RECENT TRAINING</span><h2>Recent sessions</h2></div><span className="subtle">{store.sessions.length} logged</span></div>
+      {recent.length ? <div className="recent-list">{recent.map(session => <div className="recent-item" key={session.id}><div className="recent-symbol"><Dumbbell size={17} /></div><div className="recent-main"><strong>{session.title}</strong><span>{session.focus} · {session.date}</span></div><div className="recent-data"><strong>{prettyDuration(session.durationMin)}</strong><span>{session.exercises.length} movements</span></div><Check size={17} className="recent-check" /></div>)}</div> : <div className="empty-state"><strong>No workouts yet.</strong><span>Your training history will build here after your first completed session.</span><button className="button secondary-button" onClick={onTrain}>Explore workout plans</button></div>}
     </section>
-    <section className="quote-strip"><Sparkles size={18} /><p><strong>Remember:</strong> a session you can repeat beats a perfect plan you cannot sustain.</p><button onClick={onWeight}>Log bodyweight <ArrowRight size={15} /></button></section>
-  </>
+  </>;
 }
 
 function TrainingPage({ store, onStart, onRepeat }: { store: Store; onStart: (program: Program) => void; onRepeat: (session: Session) => void }) {
-  const [view, setView] = useState<'plans' | 'library'>('plans')
-  const [focus, setFocus] = useState('All')
-  const [query, setQuery] = useState('')
-  const categories = ['All', 'Full body', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core']
-  const filteredExercises = EXERCISE_LIBRARY.filter(exercise => (focus === 'All' || exercise.muscle.toLowerCase().includes(focus.toLowerCase())) && (exercise.name.toLowerCase().includes(query.toLowerCase()) || exercise.equipment.toLowerCase().includes(query.toLowerCase())))
-  const startCustomSession = () => onStart({
-    id: 'open-gym-session',
-    title: 'My own session',
-    focus: 'Flexible training',
-    level: store.profile.level,
-    duration: 45,
-    description: 'Build a session from the exercise library as you go.',
-    exercises: []
-  })
+  const [view, setView] = useState<'plans' | 'home' | 'library'>('plans');
+  const [focus, setFocus] = useState('All');
+  const [query, setQuery] = useState('');
+  const [homeDuration, setHomeDuration] = useState(20);
+  const categories = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+  const filteredExercises = EXERCISE_LIBRARY.filter(exercise => (focus === 'All' || exercise.muscle.toLowerCase().includes(focus.toLowerCase())) && (exercise.name.toLowerCase().includes(query.toLowerCase()) || exercise.equipment.toLowerCase().includes(query.toLowerCase())));
+  const today = new Date();
+  const todayGymPlan = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+  const todayHomePlan = getHomeProgramForDay(today, store.profile);
+  const startCustomSession = () => onStart({ id: 'open-gym-session', title: 'My own gym session', focus: 'Flexible training', level: store.profile.level, duration: 45, description: 'Build a session from the movement library.', mode: 'gym', exercises: [] });
+  const gymPrograms = PROGRAMS.filter(program => !program.id.startsWith('full-'));
+  const homePrograms = HOME_PROGRAMS.filter(program => program.duration <= homeDuration);
   return <>
-    <div className="page-intro"><div><span className="eyebrow">THE TRAINING FLOOR</span><h1>Train with purpose.</h1><p>Choose a session, log your working sets, and make your next session a little more informed.</p></div><div className="intro-stamp"><Dumbbell size={23} /><span>LF / TRAIN</span></div></div>
-    <div className="view-tabs"><button className={view === 'plans' ? 'selected' : ''} onClick={() => setView('plans')}>Training plans</button><button className={view === 'library' ? 'selected' : ''} onClick={() => setView('library')}>Exercise library</button></div>
-    {view === 'plans' ? <>
-      <div className="custom-session-row"><div><span className="eyebrow">YOUR ROUTINE, YOUR CALL</span><strong>Prefer to choose every movement?</strong><small>Start empty, then add exercises from the library.</small></div><button className="button secondary-button" onClick={startCustomSession}><Plus size={15} /> Build your own session</button></div>
-      {store.sessions[0] && <div className="repeat-card"><div className="repeat-mark"><RotateCcw size={18} /></div><div className="repeat-copy"><span className="eyebrow">PICK UP WHERE YOU LEFT OFF</span><strong>{store.sessions[0].title}</strong><small>Last trained {store.sessions[0].date} · {store.sessions[0].exercises.length} movements</small></div><button className="button primary-button" onClick={() => onRepeat(store.sessions[0])}>Repeat session <ArrowRight size={15} /></button></div>}
-      <div className="section-heading"><div><span className="eyebrow">BUILT AROUND YOUR WEEK</span><h2>Your suggested schedule</h2></div><span className="subtle">{store.profile.weeklyTarget} training days</span></div>
+    <div className="page-intro"><div><span className="eyebrow">YOUR TRAINING SPACE</span><h1>Train with purpose.</h1><p>Gym plans, no-equipment home sessions, and clear movement instructions.</p></div><div className="intro-stamp"><Dumbbell size={23} /><span>LF / TRAIN</span></div></div>
+    <div className="view-tabs training-mode-tabs">
+      <button className={view === 'plans' ? 'selected' : ''} onClick={() => setView('plans')}>Gym workouts</button>
+      <button className={view === 'home' ? 'selected' : ''} onClick={() => setView('home')}>Home workouts</button>
+      <button className={view === 'library' ? 'selected' : ''} onClick={() => setView('library')}>Exercise library</button>
+    </div>
+    {view === 'plans' && <>
+      <div className="custom-session-row"><div><span className="eyebrow">YOUR ROUTINE</span><strong>Today: {todayGymPlan ? todayGymPlan.title : 'Rest day'}</strong><small>{todayGymPlan ? todayGymPlan.focus + ' · ' + todayGymPlan.duration + ' min' : 'No gym session scheduled today.'}</small></div><button className="button secondary-button" onClick={startCustomSession}><Plus size={15} /> Build a session</button></div>
       <div className="schedule-card">
-        <div className="schedule-intro"><span>YOUR GOAL</span><strong>{store.profile.goal.replace('_', ' ')}</strong><span>EXPERIENCE</span><strong>{store.profile.level}</strong></div>
+        <div className="schedule-intro"><span>YOUR TRAINING GOAL</span><strong>{store.profile.goal.replace('_', ' ')}</strong><span>YOUR SPLIT</span><strong>{store.profile.splitStyle === 'focused' ? 'Focused muscle days' : store.profile.splitStyle === 'ppl' ? 'Push / Pull / Legs' : 'Upper / Lower'}</strong></div>
         <div className="schedule-days">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
-          const program = getProgramForDay(new Date(2026, 0, 5 + index), store.profile.weeklyTarget, store.profile.level)
-          return <div key={day} className={program ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{program ? <Dumbbell size={14} /> : '—'}</i><small>{program ? program.focus.split(' · ')[0] : 'Recovery'}</small></div>
+          const program = getProgramForDay(new Date(2026, 0, 5 + index), store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+          return <div key={day} className={program ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{program ? <Dumbbell size={14} /> : '—'}</i><small>{program ? program.title.replace(' day', '') : 'Rest'}</small></div>;
         })}</div>
       </div>
-      <div className="program-grid">{PROGRAMS.map(program => {
-        const completed = store.sessions.filter(session => session.title === program.title).length
-        return <article className="program-card" key={program.id}>
-          <div className={'program-art art-' + program.id}><span>{program.focus.toUpperCase()}</span><div className="art-number">{String(PROGRAMS.indexOf(program) + 1).padStart(2, '0')}</div></div>
-          <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(program)}>Start <ArrowRight size={15} /></button></div></div>
-        </article>
+      <div className="section-heading"><div><span className="eyebrow">FOCUSED PROGRAMS</span><h2>Choose a session</h2></div><span className="subtle">{store.profile.weeklyTarget} days / week</span></div>
+      <div className="program-grid">{gymPrograms.map(program => {
+        const plan = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level, store.profile.splitStyle, store.profile.goal);
+        const selected = plan?.id === program.id;
+        const completed = store.sessions.filter(session => session.title === program.title).length;
+        return <article className={selected ? 'program-card recommended-program' : 'program-card'} key={program.id}>
+          <div className="program-art"><img src={programImage(program)} alt={program.title + ' training'} loading="lazy" /><span>{program.focus.toUpperCase()}</span><div className="art-number">{String(gymPrograms.indexOf(program) + 1).padStart(2, '0')}</div></div>
+          <div className="program-body"><div className="program-meta"><span>{program.level}</span><span><Clock3 size={13} /> {program.duration} min</span></div><h3>{program.title}</h3><p>{program.description}</p><div className="program-foot"><span>{program.exercises.length} movements · {completed} completed</span><button className="button primary-button" onClick={() => onStart(program)}>{selected ? 'Start today' : 'Start'} <ArrowRight size={15} /></button></div></div>
+        </article>;
       })}</div>
-      <section className="research-panel">
-        <div className="research-heading"><div><span className="eyebrow">EVIDENCE, NOT GYM MYTHS</span><h2>How to make the work count</h2></div><span className="research-source">ACSM · 2026</span></div>
-        <div className="research-points">
-          <article><strong>01 / Show up consistently</strong><p>Train the major muscle groups at least twice a week. A repeatable schedule is more useful than a perfect plan you abandon.</p></article>
-          <article><strong>02 / Build volume gradually</strong><p>For muscle growth, around 10 weekly sets per muscle group is a useful longer-term reference—not a starting requirement. Build towards more work as you adapt.</p></article>
-          <article><strong>03 / Leave room to recover</strong><p>You do not need to reach failure on every set. Controlled reps with a few good repetitions left can be productive.</p></article>
-          <article><strong>04 / Progress with evidence</strong><p>Use your previous loads and reps. When the work feels controlled and repeatable, add a small amount of load or one rep—not both at once.</p></article>
-        </div>
-        <p className="research-footnote">Based on the 2026 American College of Sports Medicine resistance-training position stand. General guidance for healthy adults; adjust for your ability, health and coaching advice.</p>
-      </section>
-      <div className="training-reminder"><Info size={17} /><p>These routines are flexible templates, not medical prescriptions. Choose movements you can perform comfortably and ask a qualified trainer to check unfamiliar technique.</p></div>
-    </> : <>
-      <div className="library-toolbar"><div className="search-field"><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search movements or equipment" /></div><span className="subtle">{filteredExercises.length} movements</span></div>
+    </>}
+    {view === 'home' && <>
+      <div className="home-workout-hero"><img src={PHOTO_URLS.home} alt="Bodyweight training at home" /><div><span className="eyebrow">NO GYM REQUIRED</span><h2>Keep your schedule wherever you are.</h2><p>Your home plan follows the same muscle-group focus as your gym week, with bodyweight alternatives and movement guidance.</p><strong>{todayHomePlan ? 'Today: ' + todayHomePlan.title : 'Today is a scheduled rest day'}</strong>{todayHomePlan && <button className="button primary-button" onClick={() => onStart(todayHomePlan)}>Start today at home <ArrowRight size={15} /></button>}</div></div>
+      <div className="home-schedule-panel"><div className="section-heading"><div><span className="eyebrow">HOME TRAINING CALENDAR</span><h2>Your home workout week</h2></div><span className="subtle">Same split · no equipment</span></div>
+        <div className="schedule-days">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
+          const plan = getHomeProgramForDay(new Date(2026, 0, 5 + index), store.profile);
+          return <div key={day} className={plan ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{plan ? <Home size={14} /> : '—'}</i><small>{plan ? plan.focus.split(' · ')[0] : 'Rest'}</small></div>;
+        })}</div>
+      </div>
+      <div className="duration-filter"><span>SESSION LENGTH</span>{[10, 20, 30].map(value => <button key={value} className={homeDuration === value ? 'selected' : ''} onClick={() => setHomeDuration(value)}>{value} min</button>)}</div>
+      <div className="home-program-grid">{homePrograms.map(program => <article className="home-program-card" key={program.id}>
+        <div className="home-program-image"><img src={programImage(program)} alt={program.title} loading="lazy" /><span>{program.duration} MIN</span></div>
+        <div className="home-program-copy"><span className="eyebrow">BODYWEIGHT PLAN</span><h3>{program.title}</h3><p>{program.description}</p><div className="home-move-list">{program.exercises.slice(0, 4).map(exercise => <span key={exercise.name}>{exercise.name}</span>)}</div><button className="button primary-button" onClick={() => onStart(program)}>Start home workout <ArrowRight size={15} /></button></div>
+      </article>)}</div>
+    </>}
+    {view === 'library' && <>
+      <div className="library-toolbar"><div className="search-field"><Search size={16} /><input value={query} onChange={event => setQuery(event.target.value)} placeholder="Search exercises or equipment" /></div><span className="subtle">{filteredExercises.length} movements</span></div>
       <div className="filter-chips">{categories.map(category => <button key={category} className={focus === category ? 'selected' : ''} onClick={() => setFocus(category)}>{category}</button>)}</div>
-      <div className="exercise-library">{filteredExercises.map((exercise, index) => <article className="library-item" key={exercise.name}><div className="library-index">{String(index + 1).padStart(2, '0')}</div><div className="library-desc"><strong>{exercise.name}</strong><span>{exercise.muscle} · {exercise.equipment}</span><p>{exercise.cue}</p></div><div className="library-prescription"><strong>{exercise.sets} × {exercise.reps}</strong><span>{exercise.rest ? exercise.rest + ' sec rest' : 'Continuous'}</span></div></article>)}</div>
+      <div className="exercise-library">{filteredExercises.map((exercise, index) => <article className="library-item" key={exercise.name}><img className="library-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} loading="lazy" /><div className="library-index">{String(index + 1).padStart(2, '0')}</div><div className="library-desc"><strong>{exercise.name}</strong><span>{exercise.muscle} · {exercise.equipment}</span><p>{exercise.cue}</p></div><div className="library-prescription"><strong>{exercise.sets} × {exercise.reps}</strong><span>{exercise.rest ? exercise.rest + ' sec rest' : 'Continuous'}</span></div></article>)}</div>
       {!filteredExercises.length && <div className="empty-state"><strong>No movement found.</strong><span>Try another exercise name or muscle group.</span></div>}
     </>}
-  </>
+    {view === 'home' && !todayHomePlan && <p className="panel-caption">It is your planned rest day. You can still choose a short optional session above when you feel ready.</p>}
+  </>;
 }
 
 function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish, onExit }: {
@@ -811,7 +976,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, onChange, onFinish
         const previous = latestSet(sessions, exercise.name)
         const done = exercise.sets.filter(set => set.done).length
         return <article className="active-exercise" key={exercise.id}>
-          <div className="active-exercise-head"><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
+          <div className="active-exercise-head"><img className="runner-exercise-photo" src={exerciseImage(exercise.name)} alt={exercise.name + ' demonstration'} /><span className="exercise-count">{String(exerciseIndex + 1).padStart(2, '0')}</span><div className="active-exercise-title"><h2>{exercise.name}</h2><span>{exercise.muscle} · {exercise.equipment}</span></div><div className={done === exercise.sets.length ? 'exercise-status complete' : 'exercise-status'}>{done}/{exercise.sets.length} <Check size={13} /></div></div>
           <p className="form-cue">{exercise.cue}</p>
           {previous && <div className="previous-set"><History size={13} /> Last recorded: {displayWeight(previous.weightKg, units).toFixed(1)} {units === 'metric' ? 'kg' : 'lb'} × {previous.reps} reps</div>}
           {(() => {
@@ -915,72 +1080,58 @@ function WeightChart({ points, units }: { points: WeightLog[]; units: Units }) {
   </div>
 }
 
-function FuelPage({ store, updateDaily }: { store: Store; updateDaily: (patch: Partial<DailyLog>) => void }) {
-  const daily = getDailyLog(store)
-  const [protein, setProtein] = useState(String(daily.proteinGrams || ''))
-  const [sleep, setSleep] = useState(String(daily.sleepHours || ''))
-  const [energy, setEnergy] = useState(daily.energy || 3)
-  const [soreness, setSoreness] = useState(daily.soreness || 3)
-  const [note, setNote] = useState(daily.note || '')
-  const proteinProgress = store.profile.proteinTarget > 0 ? Math.min(100, daily.proteinGrams / store.profile.proteinTarget * 100) : 0
-  const saveRecovery = () => updateDaily({ sleepHours: Number(sleep) || undefined, energy, soreness, note })
-  return <>
-    <div className="page-intro"><div><span className="eyebrow">THE FOUNDATION</span><h1>Fuel the work.</h1><p>Training is one part of the process. Recovery, food and hydration help you show up again.</p></div><div className="intro-stamp"><HeartPulse size={23} /><span>LF / RECOVER</span></div></div>
-    <div className="content-grid fuel-grid">
-      <section className="panel fuel-panel"><div className="section-heading"><div><span className="eyebrow">HYDRATION</span><h2>Water check</h2></div><Droplets size={19} /></div><div className="water-total"><strong>{daily.waterCups}</strong><span>/ 8 cups today</span></div><div className="water-cups">{Array.from({ length: 8 }, (_, index) => <button aria-label={'Water cup ' + (index + 1)} className={index < daily.waterCups ? 'filled' : ''} key={index} onClick={() => updateDaily({ waterCups: index < daily.waterCups ? index : index + 1 })}><Droplets size={20} /></button>)}</div><p className="panel-caption">Use this as a simple reminder, not a fixed medical target. Adjust for your body, activity and conditions.</p><div className="inline-actions"><button className="button primary-button" onClick={() => updateDaily({ waterCups: Math.min(20, daily.waterCups + 1) })}><Plus size={15} /> Add a cup</button><button className="text-action" onClick={() => updateDaily({ waterCups: 0 })}>Reset</button></div></section>
-      <section className="panel fuel-panel"><div className="section-heading"><div><span className="eyebrow">PROTEIN NOTES</span><h2>Keep a simple count</h2></div><Utensils size={19} /></div><div className="protein-progress"><div><strong>{daily.proteinGrams} <small>g</small></strong><span>{store.profile.proteinTarget ? 'of ' + store.profile.proteinTarget + ' g target' : 'recorded today'}</span></div><div className="progress-track"><i style={{ width: proteinProgress + '%' }} /></div></div><label className="field-label">Protein so far today (grams)<input type="number" min="0" inputMode="numeric" value={protein} onChange={event => setProtein(event.target.value)} placeholder="e.g. 90" /></label><div className="inline-actions"><button className="button primary-button" onClick={() => updateDaily({ proteinGrams: Math.max(0, Number(protein) || 0) })}><Save size={15} /> Save today's total</button><span className="subtle">Target is optional</span></div><p className="panel-caption">Use a target recommended for your needs by a qualified professional. This tracker does not calculate dietary requirements.</p></section>
-    </div>
-    <section className="panel recovery-panel"><div className="section-heading"><div><span className="eyebrow">DAILY RECOVERY CHECK-IN</span><h2>How are you feeling?</h2></div><HeartPulse size={19} /></div><div className="recovery-grid">
-      <label className="field-label">Sleep last night <span className="field-suffix">HOURS</span><input type="number" min="0" max="24" step="0.5" inputMode="decimal" value={sleep} onChange={event => setSleep(event.target.value)} placeholder="e.g. 7.5" /></label>
-      <div className="rating-field"><strong>Energy today</strong><span>1 = low · 5 = high</span><div>{[1, 2, 3, 4, 5].map(value => <button className={energy === value ? 'selected' : ''} onClick={() => setEnergy(value)} key={value}>{value}</button>)}</div></div>
-      <div className="rating-field"><strong>Muscle soreness</strong><span>1 = none · 5 = high</span><div>{[1, 2, 3, 4, 5].map(value => <button className={soreness === value ? 'selected' : ''} onClick={() => setSoreness(value)} key={value}>{value}</button>)}</div></div>
-    </div><label className="field-label">Anything worth remembering?<textarea rows={3} value={note} onChange={event => setNote(event.target.value)} placeholder="Sleep, stress, appetite, unusual fatigue, or how training felt..." /></label><div className="recovery-footer"><span className="subtle">Your check-in stays private on this device.</span><button className="button primary-button" onClick={saveRecovery}><Save size={15} /> Save check-in</button></div></section>
-    <div className="training-reminder"><Info size={17} /><p>Recovery signals are personal. A workout should not be pushed through sharp pain, dizziness or unusual symptoms. Rest and seek appropriate professional advice when needed.</p></div>
-  </>
-}
 
 function ProfilePage({ store, persist, resetData, onImport }: { store: Store; persist: (store: Store) => void; resetData: () => void; onImport: (store: Store) => void }) {
-  const profile = store.profile
-  const updateProfile = (patch: Partial<Profile>) => persist({ ...store, profile: { ...profile, ...patch } })
+  const profile = store.profile;
+  const updateProfile = (patch: Partial<Profile>) => persist({ ...store, profile: { ...profile, ...patch } });
   const exportData = () => {
-    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const anchor = document.createElement('a')
-    anchor.href = url
-    anchor.download = 'legrande-training-backup-' + dateKey() + '.json'
-    anchor.click()
-    URL.revokeObjectURL(url)
-  }
+    const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = 'legrande-training-backup-' + dateKey() + '.json';
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
   const importFile = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) return
+    const file = event.target.files?.[0];
+    if (!file) return;
     try {
-      const parsed = JSON.parse(await file.text()) as Store
-      if (!parsed || !parsed.profile || !Array.isArray(parsed.sessions)) throw new Error('Invalid backup')
-      onImport(parsed)
-      window.alert('Training backup imported.')
+      const parsed = JSON.parse(await file.text()) as Store;
+      if (!parsed || !parsed.profile || !Array.isArray(parsed.sessions)) throw new Error('Invalid backup');
+      onImport(parsed);
+      window.alert('Training backup imported.');
     } catch {
-      window.alert('That file is not a valid LeGrande training backup.')
+      window.alert('That file is not a valid LeGrande training backup.');
     }
-    event.target.value = ''
-  }
+    event.target.value = '';
+  };
   return <>
-    <div className="page-intro"><div><span className="eyebrow">YOUR MEMBER DETAILS</span><h1>Make it yours.</h1><p>Adjust your preferences and manage the data saved on this device.</p></div><div className="intro-stamp"><UserRound size={23} /><span>LF / PROFILE</span></div></div>
+    <div className="page-intro"><div><span className="eyebrow">MEMBER SETTINGS</span><h1>Your profile.</h1><p>Update your details and keep your weekly training split aligned with your routine.</p></div><div className="intro-stamp"><UserRound size={23} /><span>LF / PROFILE</span></div></div>
     <div className="profile-layout">
-      <section className="panel profile-panel"><div className="profile-identity"><div className="profile-avatar">{profile.name.slice(0, 1).toUpperCase()}</div><div><span className="eyebrow">LEGRANDE MEMBER</span><h2>{profile.name}</h2><p>{profile.goal.replace('_', ' ')} · {profile.level}</p></div></div>
+      <section className="panel profile-panel">
+        <div className="profile-identity"><div className="profile-avatar">{profile.name.slice(0, 1).toUpperCase()}</div><div><span className="eyebrow">LEGRANDE MEMBER</span><h2>{profile.name}</h2><p>{profile.memberType === 'existing' ? 'Current member' : 'New member'} · {profile.phone}</p></div></div>
         <div className="profile-fields">
-          <label className="field-label">Name<input value={profile.name} onChange={event => updateProfile({ name: event.target.value })} /></label>
+          <label className="field-label">Full name<input value={profile.name} onChange={event => updateProfile({ name: event.target.value })} /></label>
+          <label className="field-label">Phone number<input type="tel" inputMode="tel" value={profile.phone} onChange={event => updateProfile({ phone: event.target.value })} /></label>
+          <label className="field-label">Member status<select value={profile.memberType} onChange={event => updateProfile({ memberType: event.target.value as MemberType })}><option value="existing">Current LeGrande member</option><option value="new">Joining LeGrande</option></select></label>
           <label className="field-label">Primary goal<select value={profile.goal} onChange={event => updateProfile({ goal: event.target.value as Goal })}><option value="build_muscle">Build muscle</option><option value="strength">Get stronger</option><option value="fat_loss">Lose body fat</option><option value="general_fitness">General fitness</option></select></label>
           <label className="field-label">Training experience<select value={profile.level} onChange={event => updateProfile({ level: event.target.value as Level })}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
-          <div className="profile-setting"><div><strong>Training days</strong><span>Target per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
-          <div className="profile-setting"><div><strong>Measurement units</strong><span>Weight and exercise loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
-          <label className="field-label">Optional protein target (g)<input type="number" min="0" value={profile.proteinTarget || ''} placeholder="Leave blank to skip" onChange={event => updateProfile({ proteinTarget: Math.max(0, Number(event.target.value) || 0) })} /></label>
-          <div className="profile-setting"><div><strong>Appearance</strong><span>Choose the training space theme</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
+          <label className="field-label">Training split<select value={profile.splitStyle} onChange={event => updateProfile({ splitStyle: event.target.value as SplitStyle })}><option value="focused">Focused muscle days</option><option value="ppl">Push / Pull / Legs</option><option value="upper_lower">Upper / Lower</option></select></label>
+          <div className="profile-setting"><div><strong>Training days</strong><span>Sessions per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
+          <div className="profile-setting"><div><strong>Measurement units</strong><span>Bodyweight and set loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
+          <div className="profile-setting"><div><strong>Appearance</strong><span>Light or dark member space</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
         </div>
       </section>
-      <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DATA & PRIVACY</span><h2>Your data, your device.</h2></div><ShieldCheck size={20} /></div><p>LeGrande currently stores your member profile, workout history, bodyweight and daily check-ins in this browser's local storage. Nothing is sent to a Supabase database.</p><div className="privacy-stat"><span>Storage mode</span><strong>On this device only</strong></div><div className="privacy-stat"><span>Cloud account</span><strong>Not connected</strong></div><button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button><label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label><div className="danger-zone"><strong>Reset member data</strong><p>This removes your local profile, workouts, weigh-ins and check-ins from this browser.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData() }}>Reset this device</button></div></section>
+      <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Local member profile</h2></div><ShieldCheck size={20} /></div>
+        <p>This preview stores your profile and training history in this browser only. A phone number is recorded for your member details, but it is not verified and there is no shared member database or cross-device sign-in yet.</p>
+        <div className="privacy-stat"><span>Storage mode</span><strong>On this device</strong></div><div className="privacy-stat"><span>Phone verification</span><strong>Not connected</strong></div>
+        <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button>
+        <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>
+        <div className="danger-zone"><strong>Reset member data</strong><p>This removes your profile, workout history, weigh-ins and measurements from this browser.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData(); }}>Reset this device</button></div>
+      </section>
     </div>
-  </>
+  </>;
 }
 
 function WeightModal({ store, close, persist }: { store: Store; close: () => void; persist: (store: Store) => void }) {
