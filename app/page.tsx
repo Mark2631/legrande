@@ -243,15 +243,21 @@ function bestStreak(sessions: Session[], target: number) {
   })
   return best
 }
-function getProgramForDay(date: Date, target: number) {
+function getProgramForDay(date: Date, target: number, level: Level = 'beginner') {
   const day = (date.getDay() + 6) % 7
-  const schedules: Record<number, { days: number[]; ids: string[] }> = {
+  const beginnerSchedules: Record<number, { days: number[]; ids: string[] }> = {
+    3: { days: [0, 2, 4], ids: ['full-a', 'full-b', 'full-c'] },
+    4: { days: [0, 1, 3, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a'] },
+    5: { days: [0, 1, 2, 4, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a', 'full-b'] },
+    6: { days: [0, 1, 2, 3, 4, 5], ids: ['full-a', 'full-b', 'full-c', 'full-a', 'full-b', 'full-c'] }
+  }
+  const experiencedSchedules: Record<number, { days: number[]; ids: string[] }> = {
     3: { days: [0, 2, 4], ids: ['full-a', 'full-b', 'full-c'] },
     4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] },
     5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'upper', 'lower'] },
-    6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] },
-    7: { days: [0, 1, 2, 3, 4, 5, 6], ids: ['push', 'pull', 'legs', 'upper', 'lower', 'full-a', 'full-b'] }
+    6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
   }
+  const schedules = level === 'beginner' ? beginnerSchedules : experiencedSchedules
   const schedule = schedules[target] || schedules[4]
   const index = schedule.days.indexOf(day)
   if (index < 0) return null
@@ -346,9 +352,17 @@ function safeReadStore(): Store {
           })), notes: ''
         }
       })
+      const oldGoal = String(legacy.profile?.goal || '')
+      const migratedGoal: Goal = oldGoal === 'lose_fat'
+        ? 'fat_loss'
+        : oldGoal === 'stay_consistent'
+          ? 'general_fitness'
+          : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness'
+            ? oldGoal
+            : 'build_muscle'
       const migrated: Store = {
         version: 2,
-        profile: { ...defaultProfile, ...(legacy.profile || {}), onboardingComplete: true },
+        profile: { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, onboardingComplete: true },
         sessions: migratedSessions,
         weightLogs: legacy.weightLogs || [],
         measurementLogs: legacy.measurementLogs || [],
@@ -460,7 +474,7 @@ export default function Page() {
       onChange={saveActive}
       onFinish={finishWorkout}
       onExit={() => {
-        if (window.confirm('Pause this workout and return to your member space? Your sets will remain saved.')) { setPausedWorkout(activeWorkout); setActiveWorkout(null) }
+        if (window.confirm('Pause this workout and return to your member space? Your sets will remain saved.')) { setPausedWorkout(activeWorkout); setActiveWorkout(null); setTab('today') }
       }}
     />
   }
@@ -530,7 +544,7 @@ function Onboarding({ onComplete }: { onComplete: (profile: Profile, firstLog?: 
   const [weight, setWeight] = useState('')
   const [height, setHeight] = useState('')
   const update = (patch: Partial<Profile>) => setProfile(current => ({ ...current, ...patch }))
-  const canContinue = step === 1 ? profile.name.trim().length > 1 : step === 2 ? Number(weight) > 0 : true
+  const canContinue = step === 1 ? profile.name.trim().length > 1 : step === 2 ? (!weight || Number(weight) > 0) : true
   const finish = () => {
     const firstLog: WeightLog | undefined = Number(weight) > 0
       ? { date: dateKey(), kg: toKg(weight, profile.units) }
@@ -559,6 +573,12 @@ function Onboarding({ onComplete }: { onComplete: (profile: Profile, firstLog?: 
             ['fat_loss', 'Lose body fat', 'Build repeatable habits'],
             ['general_fitness', 'Feel fitter', 'Fitness for everyday life']
           ].map(([value, title, description]) => <button key={value} className={profile.goal === value ? 'choice-card selected' : 'choice-card'} onClick={() => update({ goal: value as Goal })}><strong>{title}</strong><span>{description}</span></button>)}
+        </div>
+        <span className="field-label">Training experience</span>
+        <div className="segmented">
+          <button className={profile.level === 'beginner' ? 'selected' : ''} onClick={() => update({ level: 'beginner' })}>Beginner</button>
+          <button className={profile.level === 'intermediate' ? 'selected' : ''} onClick={() => update({ level: 'intermediate' })}>Intermediate</button>
+          <button className={profile.level === 'advanced' ? 'selected' : ''} onClick={() => update({ level: 'advanced' })}>Advanced</button>
         </div>
       </>}
       {step === 2 && <>
@@ -596,7 +616,7 @@ function Dashboard({ store, onStart, onWeight, onTrain, pausedWorkout, onResume 
   const firstName = store.profile.name.trim().split(/\s+/)[0]
   const hour = today.getHours()
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-  const scheduled = getProgramForDay(today, store.profile.weeklyTarget)
+  const scheduled = getProgramForDay(today, store.profile.weeklyTarget, store.profile.level)
   const week = weekSessions(store.sessions)
   const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100)
   const streak = currentStreak(store.sessions, store.profile.weeklyTarget)
@@ -668,7 +688,7 @@ function TrainingPage({ store, onStart }: { store: Store; onStart: (program: Pro
       <div className="schedule-card">
         <div className="schedule-intro"><span>YOUR GOAL</span><strong>{store.profile.goal.replace('_', ' ')}</strong><span>EXPERIENCE</span><strong>{store.profile.level}</strong></div>
         <div className="schedule-days">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, index) => {
-          const program = getProgramForDay(new Date(2026, 0, 5 + index), store.profile.weeklyTarget)
+          const program = getProgramForDay(new Date(2026, 0, 5 + index), store.profile.weeklyTarget, store.profile.level)
           return <div key={day} className={program ? 'schedule-day planned' : 'schedule-day'}><span>{day}</span><i>{program ? <Dumbbell size={14} /> : '—'}</i><small>{program ? program.focus.split(' · ')[0] : 'Recovery'}</small></div>
         })}</div>
       </div>
@@ -898,7 +918,7 @@ function ProfilePage({ store, persist, resetData, onImport }: { store: Store; pe
           <label className="field-label">Training experience<select value={profile.level} onChange={event => updateProfile({ level: event.target.value as Level })}><option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option></select></label>
           <div className="profile-setting"><div><strong>Training days</strong><span>Target per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
           <div className="profile-setting"><div><strong>Measurement units</strong><span>Weight and exercise loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
-          <label className="field-label">Optional protein target (g)<input type="number" min="0" value={profile.proteinTarget || ''} placeholder="Leave blank to skip" onChange={event => updateProfile({ proteinTarget: Number(event.target.value) || 0 })} /></label>
+          <label className="field-label">Optional protein target (g)<input type="number" min="0" value={profile.proteinTarget || ''} placeholder="Leave blank to skip" onChange={event => updateProfile({ proteinTarget: Math.max(0, Number(event.target.value) || 0) })} /></label>
           <div className="profile-setting"><div><strong>Appearance</strong><span>Choose the training space theme</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
         </div>
       </section>
