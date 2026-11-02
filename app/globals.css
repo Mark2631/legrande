@@ -366,3 +366,5 @@
  .dashboard-quick-actions button>span{width:24px;height:24px}
  .dashboard-quick-actions small{display:none}
 }
+
+.photo-credit{font-size:8px;line-height:1.65;color:var(--muted);margin-top:13px}.photo-credit a{color:var(--legrande-gold);text-decoration:underline;text-underline-offset:2px}

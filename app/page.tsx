@@ -391,17 +391,11 @@ const UNSPLASH_MOVEMENT_IMAGES: Record<string, string> = {
   'dumbbell shoulder press': 'https://images.unsplash.com/photo-1772450014048-ec6dc611be2b?auto=format&fit=crop&w=1200&q=82',
   'seated dumbbell shoulder press': 'https://images.unsplash.com/photo-1772450014048-ec6dc611be2b?auto=format&fit=crop&w=1200&q=82',
   'dumbbell curl': 'https://images.unsplash.com/photo-1704223523321-7b0b44a1a0b9?auto=format&fit=crop&w=1200&q=82',
-  'hammer curl': 'https://images.unsplash.com/photo-1733517300852-6320e112261d?auto=format&fit=crop&w=1200&q=82',
   'treadmill walk': 'https://images.unsplash.com/photo-1675026482188-8102367ecc16?auto=format&fit=crop&w=1200&q=82',
   'walking, treadmill': 'https://images.unsplash.com/photo-1675026482188-8102367ecc16?auto=format&fit=crop&w=1200&q=82',
   'standard push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
   'push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
-  'wide push-up': 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1200&q=82',
   'plank': 'https://images.unsplash.com/photo-1758599878908-596c2042f563?auto=format&fit=crop&w=1200&q=82',
-  'plank shoulder tap': 'https://images.unsplash.com/photo-1635863870541-286925d89030?auto=format&fit=crop&w=1200&q=82',
-  'standing hamstring stretch': 'https://images.unsplash.com/photo-1701826510609-b8d07deca0d4?auto=format&fit=crop&w=1200&q=82',
-  'hamstring stretch': 'https://images.unsplash.com/photo-1701826510609-b8d07deca0d4?auto=format&fit=crop&w=1200&q=82',
-  'cross-body shoulder stretch': 'https://images.unsplash.com/photo-1770026136858-6f12670dd131?auto=format&fit=crop&w=1200&q=82',
   'overhead stretch': 'https://images.unsplash.com/photo-1770026136858-6f12670dd131?auto=format&fit=crop&w=1200&q=82'
 };
 const EXERCISE_IMAGES: Record<string, string> = {
@@ -557,7 +551,7 @@ function gymCooldownForFocus(focus: string): ProgramExercise[] {
   ];
   if (back) return [
     { name: 'Child’s pose', muscle: 'Back', equipment: 'Floor mat', sets: 1, reps: 30, rest: 0, cue: 'Sit your hips gently toward your heels and reach forward.', phase: 'cooldown', durationSec: 30 },
-    { name: 'Lat stretch on bench', muscle: 'Lats', equipment: 'Bench', sets: 1, reps: 30, rest: 0, cue: 'Rest your hands on a bench, sit your hips back and breathe.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Upper back stretch', muscle: 'Upper back · Lats', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Reach both arms forward, gently round the upper back and breathe into the stretch.', phase: 'cooldown', durationSec: 30 },
     { name: 'Cross-body shoulder stretch', muscle: 'Rear delts', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Bring one arm across your chest and guide it gently.', phase: 'cooldown', durationSec: 30 }
   ];
   if (shoulders) return [
@@ -1494,6 +1488,7 @@ function ProfilePage({ store, persist, resetData, onImport }: { store: Store; pe
       </section>
       <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Local member profile</h2></div><ShieldCheck size={20} /></div>
         <p>Profile and training history stay in this browser. The Kenyan mobile number is stored but not verified. The management portal will confirm package payment and exact entitlement dates.</p>
+         <p className="photo-credit">Photography: <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">Unsplash contributors</a>. Exercise reference images: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>.</p>
         <div className="privacy-stat"><span>Storage mode</span><strong>On this device</strong></div><div className="privacy-stat"><span>Phone verification</span><strong>Not connected</strong></div>
         <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button>
         <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>
