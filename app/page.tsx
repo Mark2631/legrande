@@ -15,10 +15,18 @@ type Units = 'metric' | 'imperial'
 type Tab = 'today' | 'train' | 'progress' | 'profile'
 type MemberType = 'new' | 'existing'
 type SplitStyle = 'focused' | 'ppl' | 'upper_lower'
+type Gender = 'woman' | 'man' | 'non_binary' | 'prefer_not_to_say'
+type PackageType = 'daily' | 'weekly' | 'monthly' | 'semester'
 type Profile = {
   name: string
   phone: string
+  gender: Gender
+  bodyweightKg: number | null
   memberType: MemberType
+  packageType: PackageType
+  packageStart: string
+  packageEnd: string
+  sessionStartTime: string
   splitStyle: SplitStyle
   goal: Goal
   level: Level
@@ -76,9 +84,9 @@ type Program = { id: string; title: string; focus: string; level: Level; duratio
 const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
-  name: '', phone: '', memberType: 'new', splitStyle: 'focused',
-  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4,
-  units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
+  name: '', phone: '', gender: 'prefer_not_to_say', bodyweightKg: null, memberType: 'new',
+  packageType: 'daily', packageStart: '', packageEnd: '', sessionStartTime: '08:00', splitStyle: 'focused',
+  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
 }
 const emptyStore: Store = {
   version: 2, profile: defaultProfile, sessions: [], weightLogs: [], measurementLogs: []
@@ -369,29 +377,34 @@ HOME_PROGRAMS.forEach(program => {
 });
 
 const PHOTO_URLS = {
-  gym: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=900&q=80',
-  chest: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80',
-  back: 'https://images.unsplash.com/photo-1599058917212-d750089bc07e?auto=format&fit=crop&w=900&q=80',
-  legs: 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&w=900&q=80',
-  shoulders: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1a?auto=format&fit=crop&w=900&q=80',
-  arms: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?auto=format&fit=crop&w=900&q=80',
-  home: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80'
+  gym: {
+    man: 'https://images.unsplash.com/photo-1704223523492-6279abd5261b?auto=format&fit=crop&w=1000&q=82',
+    woman: 'https://images.unsplash.com/photo-1434682772747-f16d3ea162c3?auto=format&fit=crop&w=1000&q=82',
+    neutral: 'https://images.unsplash.com/photo-1561402811-8cf986c35eec?auto=format&fit=crop&w=1000&q=82'
+  },
+  home: {
+    man: 'https://images.unsplash.com/photo-1760084081757-6f918c08403b?auto=format&fit=crop&w=1000&q=82',
+    woman: 'https://images.unsplash.com/photo-1758599878868-52cced2f8154?auto=format&fit=crop&w=1000&q=82',
+    neutral: 'https://images.unsplash.com/photo-1714646442330-9068099f5521?auto=format&fit=crop&w=1000&q=82'
+  }
 };
-function exerciseImage(name: string) {
-  const value = name.toLowerCase();
-  if (/squat|lunge|leg press|leg curl|calf|glute|romanian|deadlift/.test(value)) return PHOTO_URLS.legs;
-  if (/lateral raise|shoulder|pike|face pull|reverse fly|snow angel|arm circle/.test(value)) return PHOTO_URLS.shoulders;
-  if (/triceps|pushdown|dip|close-grip/.test(value)) return PHOTO_URLS.arms;
-  if (/curl/.test(value)) return PHOTO_URLS.arms;
-  if (/lat|row|superman|bird dog|cat-cow/.test(value)) return PHOTO_URLS.back;
-  if (/push-up|chest|fly/.test(value)) return PHOTO_URLS.chest;
-  if (/plank|march|mountain|jumping|dead bug|stretch|child|sphinx|fold|cat-cow/.test(value)) return PHOTO_URLS.home;
-  return PHOTO_URLS.gym;
+function exerciseImage(name: string, mode: 'gym' | 'home' = 'gym', gender: Gender = 'prefer_not_to_say') {
+  const person = gender === 'man' ? 'man' : gender === 'woman' ? 'woman' : 'neutral';
+  const source = mode === 'home' ? PHOTO_URLS.home : PHOTO_URLS.gym;
+  if (mode === 'home' && /squat|lunge|leg|glute|calf/i.test(name) && person === 'man') return 'https://images.unsplash.com/photo-1714646442127-cac6c14a04c7?auto=format&fit=crop&w=1000&q=82';
+  return source[person];
 }
-function programImage(program: Program) {
-  return exerciseImage(program.exercises[0]?.name || program.focus);
+function TrainingPhoto({ name, mode = 'gym', gender = 'prefer_not_to_say', alt, className }: {
+  name: string; mode?: 'gym' | 'home'; gender?: Gender; alt: string; className?: string
+}) {
+  const [failed, setFailed] = useState(false);
+  const src = exerciseImage(name, mode, gender);
+  useEffect(() => { setFailed(false); }, [src]);
+  if (failed) return <div className={'training-photo-fallback ' + (className || '')} role="img" aria-label={alt}><Dumbbell size={23} /><span>{mode === 'home' ? 'BODYWEIGHT MOVEMENT' : 'GYM MOVEMENT'}</span></div>;
+  return <img src={src} alt={alt} className={className || ''} loading="lazy" onError={() => setFailed(true)} />;
 }
 
+const NAV_ITEMS = [
 const NAV_ITEMS = [
   { id: 'today' as Tab, label: 'Today', icon: Home },
   { id: 'train' as Tab, label: 'Train', icon: Dumbbell },
@@ -452,45 +465,95 @@ function bestStreak(sessions: Session[], target: number) {
   })
   return best
 }
+function normalizeKenyanPhone(value: string) {
+  let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('254')) digits = digits.slice(3);
+  else if (digits.startsWith('0')) digits = digits.slice(1);
+  return '+254' + digits.slice(0, 9);
+}
+function phoneNationalPart(value: string) { return value ? normalizeKenyanPhone(value).slice(4) : ''; }
+function isValidKenyanPhone(value: string) { return /^\+254[17]\d{8}$/.test(normalizeKenyanPhone(value)); }
+function packageDurationDays(type: PackageType) { return type === 'daily' ? 1 : type === 'weekly' ? 7 : type === 'monthly' ? 30 : 120; }
+function createPackageWindow(type: PackageType, startDate = dateKey()) {
+  const end = new Date(startDate + 'T12:00:00'); end.setDate(end.getDate() + packageDurationDays(type));
+  return { packageStart: startDate, packageEnd: dateKey(end) };
+}
+function isPackageActive(profile: Profile, date = dateKey()) { return Boolean(profile.packageStart && profile.packageEnd && date >= profile.packageStart && date < profile.packageEnd); }
+function packageName(type: PackageType) { return type === 'daily' ? 'Daily pass' : type === 'weekly' ? 'Weekly pass' : type === 'monthly' ? 'Monthly membership' : 'Full semester'; }
+function packageEndLabel(profile: Profile) {
+  if (!profile.packageEnd) return 'Not activated';
+  const end = new Date(profile.packageEnd + 'T12:00:00'); end.setDate(end.getDate() - 1);
+  return end.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function formatDayLabel(date: Date) { return date.toLocaleDateString('en-KE', { weekday: 'long', day: 'numeric', month: 'long' }); }
+function formatSessionWindow(startTime: string) {
+  const [hours, minutes] = (startTime || '08:00').split(':').map(Number);
+  const start = new Date(); start.setHours(hours || 8, minutes || 0, 0, 0);
+  const end = new Date(start.getTime() + 2 * 60 * 60 * 1000);
+  return start.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' }) + ' – ' + end.toLocaleTimeString('en-KE', { hour: 'numeric', minute: '2-digit' });
+}
+function latestBodyweight(store: Store) { return store.profile.bodyweightKg ?? store.weightLogs[store.weightLogs.length - 1]?.kg ?? null; }
+
+function gymWarmupForFocus(focus: string): ProgramExercise[] {
+  const lower = /leg|lower/i.test(focus);
+  return [
+    { name: lower ? 'Stationary bike' : 'Treadmill walk', muscle: 'General warm-up', equipment: lower ? 'Stationary bike' : 'Treadmill', sets: 1, reps: 5, rest: 0, cue: 'Move easily for five minutes. Build temperature gradually before lifting.', phase: 'warmup', durationSec: 300 },
+    { name: 'Arm circles', muscle: 'Shoulders', equipment: 'No equipment', sets: 1, reps: 10, rest: 0, cue: 'Make small controlled circles forwards and backwards.', phase: 'warmup', durationSec: 30 },
+    lower
+      ? { name: 'Bodyweight squat', muscle: 'Quads · Glutes', equipment: 'No equipment', sets: 1, reps: 10, rest: 0, cue: 'Rehearse your squat pattern in a comfortable range.', phase: 'warmup', durationSec: 40 }
+      : { name: 'Scapular wall slides', muscle: 'Upper back · Shoulders', equipment: 'Wall', sets: 1, reps: 10, rest: 0, cue: 'Keep your ribs down and slide your arms up the wall.', phase: 'warmup', durationSec: 40 }
+  ];
+}
+function gymCooldownForFocus(focus: string): ProgramExercise[] {
+  const lower = /leg|lower/i.test(focus), back = /back|pull/i.test(focus), shoulders = /shoulder/i.test(focus), arms = /arm|biceps|triceps/i.test(focus);
+  if (lower) return [
+    { name: 'Standing quadriceps stretch', muscle: 'Quads', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Hold a support if needed. Bring your heel toward your glutes gently.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Standing hamstring stretch', muscle: 'Hamstrings', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Place one heel forward and hinge gently at the hips. Do not bounce.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Calf wall stretch', muscle: 'Calves', equipment: 'Wall', sets: 1, reps: 30, rest: 0, cue: 'Keep the back heel down and lean forward gently.', phase: 'cooldown', durationSec: 30 }
+  ];
+  if (back) return [
+    { name: 'Child’s pose', muscle: 'Back', equipment: 'Floor mat', sets: 1, reps: 30, rest: 0, cue: 'Sit your hips gently toward your heels and reach forward.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Lat stretch on bench', muscle: 'Lats', equipment: 'Bench', sets: 1, reps: 30, rest: 0, cue: 'Rest your hands on a bench, sit your hips back and breathe.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Cross-body shoulder stretch', muscle: 'Rear delts', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Bring one arm across your chest and guide it gently.', phase: 'cooldown', durationSec: 30 }
+  ];
+  if (shoulders) return [
+    { name: 'Cross-body shoulder stretch', muscle: 'Shoulders', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Bring one arm across your chest and hold a comfortable stretch.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Overhead triceps stretch', muscle: 'Triceps', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Raise one arm overhead, bend the elbow and guide lightly.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Chest opener stretch', muscle: 'Chest', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Open your chest gently with shoulders relaxed.', phase: 'cooldown', durationSec: 30 }
+  ];
+  if (arms) return [
+    { name: 'Overhead triceps stretch', muscle: 'Triceps', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Raise one arm overhead, bend the elbow and guide lightly.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Biceps wall stretch', muscle: 'Biceps · Chest', equipment: 'Wall', sets: 1, reps: 30, rest: 0, cue: 'Place your palm against a wall and rotate gently away.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Wrist flexor stretch', muscle: 'Forearms', equipment: 'No equipment', sets: 1, reps: 20, rest: 0, cue: 'Extend one arm and gently draw the fingers back.', phase: 'cooldown', durationSec: 20 }
+  ];
+  return [
+    { name: 'Doorway chest stretch', muscle: 'Chest', equipment: 'Door frame', sets: 1, reps: 30, rest: 0, cue: 'Rest a forearm on a door frame and turn gently away.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Overhead triceps stretch', muscle: 'Triceps', equipment: 'No equipment', sets: 1, reps: 30, rest: 0, cue: 'Raise one arm overhead, bend the elbow and guide lightly.', phase: 'cooldown', durationSec: 30 },
+    { name: 'Child’s pose', muscle: 'Back', equipment: 'Floor mat', sets: 1, reps: 30, rest: 0, cue: 'Sit your hips toward your heels and reach forward.', phase: 'cooldown', durationSec: 30 }
+  ];
+}
 function getProgramForDay(date: Date, target: number, level: Level = 'beginner', splitStyle: SplitStyle = 'focused', goal: Goal = 'build_muscle') {
   const day = (date.getDay() + 6) % 7;
   const schedules: Record<SplitStyle, Record<number, { days: number[]; ids: string[] }>> = {
-    focused: {
-      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
-      4: { days: [0, 1, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders'] },
-      5: { days: [0, 1, 2, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms'] },
-      6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
-    },
-    ppl: {
-      3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] },
-      4: { days: [0, 1, 3, 5], ids: ['push', 'pull', 'legs', 'upper'] },
-      5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull'] },
-      6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] }
-    },
-    upper_lower: {
-      3: { days: [0, 2, 4], ids: ['upper', 'lower', 'upper'] },
-      4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] },
-      5: { days: [0, 1, 2, 4, 5], ids: ['upper', 'lower', 'push', 'pull', 'legs'] },
-      6: { days: [0, 1, 2, 3, 4, 5], ids: ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'] }
-    }
+    focused: { 3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] }, 4: { days: [0, 1, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders'] }, 5: { days: [0, 1, 2, 3, 5], ids: ['chest', 'back', 'legs', 'shoulders', 'arms'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] } },
+    ppl: { 3: { days: [0, 2, 4], ids: ['push', 'pull', 'legs'] }, 4: { days: [0, 1, 3, 5], ids: ['push', 'pull', 'legs', 'upper'] }, 5: { days: [0, 1, 2, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['push', 'pull', 'legs', 'push', 'pull', 'legs'] } },
+    upper_lower: { 3: { days: [0, 2, 4], ids: ['upper', 'lower', 'upper'] }, 4: { days: [0, 1, 3, 5], ids: ['upper', 'lower', 'upper', 'lower'] }, 5: { days: [0, 1, 2, 4, 5], ids: ['upper', 'lower', 'push', 'pull', 'legs'] }, 6: { days: [0, 1, 2, 3, 4, 5], ids: ['upper', 'lower', 'upper', 'lower', 'upper', 'lower'] } }
   };
   const schedule = schedules[splitStyle]?.[target] || schedules.focused[4];
-  const index = schedule.days.indexOf(day);
+  let index = schedule.days.indexOf(day);
   if (index < 0) return null;
   const base = PROGRAMS.find(program => program.id === schedule.ids[index]);
   if (!base) return null;
-  const beginnerMultiplier = level === 'beginner' ? 0.75 : level === 'advanced' ? 1.15 : 1;
-  return {
-    ...base,
-    level,
-    exercises: base.exercises.map(exercise => ({
-      ...exercise,
-      sets: Math.max(2, Math.min(5, Math.round(exercise.sets * beginnerMultiplier))),
-      reps: goal === 'strength' ? Math.max(5, exercise.reps - 2) : goal === 'fat_loss' ? exercise.reps + 2 : exercise.reps,
-      rest: goal === 'strength' ? Math.max(exercise.rest, 120) : goal === 'fat_loss' ? Math.max(30, exercise.rest - 15) : exercise.rest
-    }))
-  };
+  const main = base.exercises.map(exercise => {
+    const compound = /press|squat|deadlift|row|pulldown|leg press|split squat/i.test(exercise.name);
+    const sets = level === 'beginner' ? 2 : level === 'advanced' ? Math.max(3, Math.round(exercise.sets * 1.15)) : Math.max(2, Math.min(3, exercise.sets));
+    const reps = goal === 'strength' ? (compound ? 6 : 8) : goal === 'general_fitness' ? 10 : (compound ? 8 : 12);
+    const rest = goal === 'strength' ? (compound ? 150 : 90) : (compound ? 90 : 60);
+    return { ...exercise, phase: 'main' as const, sets, reps: level === 'beginner' ? Math.min(10, reps) : reps, rest };
+  });
+  return { ...base, level, description: base.description + ' Set volume and rest periods are adapted to your stated goal and experience.', duration: base.duration + 10, exercises: [...gymWarmupForFocus(base.focus), ...main, ...gymCooldownForFocus(base.focus)] };
 }
+
 function getHomeProgramForDay(date: Date, profile: Profile) {
   const gymPlan = getProgramForDay(date, profile.weeklyTarget, profile.level, profile.splitStyle, profile.goal);
   if (!gymPlan) return null;
@@ -580,62 +643,46 @@ function safeReadStore(): Store {
     const current = localStorage.getItem(STORE_KEY);
     if (current) {
       const parsed = JSON.parse(current) as Partial<Store>;
-      const savedProfile = (parsed.profile || {}) as Partial<Profile>;
-      const profile: Profile = {
-        ...defaultProfile, ...savedProfile,
-        phone: String(savedProfile.phone || ''),
-        memberType: savedProfile.memberType || 'existing',
-        splitStyle: savedProfile.splitStyle || 'focused',
-        onboardingComplete: Boolean(savedProfile.onboardingComplete && String(savedProfile.phone || '').trim())
-      };
-      return {
-        version: 2, profile,
-        sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-        weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [],
-        measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : []
-      };
+      const saved = (parsed.profile || {}) as Partial<Profile>;
+      const phone = saved.phone ? normalizeKenyanPhone(saved.phone) : '';
+      const packageType = saved.packageType || 'daily';
+      const completed = Boolean(saved.onboardingComplete && isValidKenyanPhone(phone));
+      const packageWindow = saved.packageStart && saved.packageEnd ? { packageStart: saved.packageStart, packageEnd: saved.packageEnd }
+        : completed ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
+      const profile: Profile = { ...defaultProfile, ...saved, phone, packageType,
+        gender: saved.gender || 'prefer_not_to_say', bodyweightKg: Number(saved.bodyweightKg) > 0 ? Number(saved.bodyweightKg) : null,
+        sessionStartTime: saved.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: completed };
+      return { version: 2, profile, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+        weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [], measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [] };
     }
     const legacyText = localStorage.getItem('lgg:v1');
     if (legacyText) {
       const legacy = JSON.parse(legacyText) as {
         profile?: Partial<Profile> & { goal?: string };
         sessions?: Array<{ id?: string; date: string; type?: string; durationMin?: number; exercises?: Array<{ name: string; sets: Array<{ reps: number; weightKg: number }> }> }>;
-        weightLogs?: WeightLog[];
-        measurementLogs?: MeasurementLog[];
+        weightLogs?: WeightLog[]; measurementLogs?: MeasurementLog[];
       };
       const migratedSessions: Session[] = (legacy.sessions || []).map(item => {
         const startedAt = new Date(item.date + 'T08:00:00').getTime();
-        return {
-          id: item.id || makeId(), date: item.date, startedAt, finishedAt: startedAt + (item.durationMin || 45) * 60000,
-          title: item.type === 'home' ? 'Home workout' : 'Gym session',
-          focus: 'Previous session', mode: item.type === 'home' ? 'home' : 'gym', durationMin: item.durationMin || 45,
-          exercises: (item.exercises || []).map(exercise => ({
-            id: makeId(), name: exercise.name, muscle: 'General', equipment: 'Previous log', cue: '', restSeconds: 60,
-            sets: (exercise.sets || []).map(set => ({ id: makeId(), reps: set.reps, weightKg: set.weightKg, rir: 2, done: true }))
-          })), notes: ''
-        };
+        return { id: item.id || makeId(), date: item.date, startedAt, finishedAt: startedAt + (item.durationMin || 45) * 60000,
+          title: item.type === 'home' ? 'Home workout' : 'Gym session', focus: 'Previous session', mode: item.type === 'home' ? 'home' : 'gym', durationMin: item.durationMin || 45,
+          exercises: (item.exercises || []).map(exercise => ({ id: makeId(), name: exercise.name, muscle: 'General', equipment: 'Previous log', cue: '', restSeconds: 60,
+            sets: (exercise.sets || []).map(set => ({ id: makeId(), reps: set.reps, weightKg: set.weightKg, rir: 2, done: true })) })), notes: '' };
       });
       const oldGoal = String(legacy.profile?.goal || '');
-      const migratedGoal: Goal = oldGoal === 'lose_fat' ? 'fat_loss'
-        : oldGoal === 'stay_consistent' ? 'general_fitness'
-          : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness' ? oldGoal : 'build_muscle';
-      const phone = String(legacy.profile?.phone || '');
-      const profile: Profile = {
-        ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
-        memberType: legacy.profile?.memberType || 'existing',
-        splitStyle: legacy.profile?.splitStyle || 'focused',
-        onboardingComplete: Boolean(phone.trim())
-      };
-      const migrated: Store = {
-        version: 2, profile, sessions: migratedSessions,
-        weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || []
-      };
-      localStorage.setItem(STORE_KEY, JSON.stringify(migrated));
-      return migrated;
+      const migratedGoal: Goal = oldGoal === 'lose_fat' ? 'fat_loss' : oldGoal === 'stay_consistent' ? 'general_fitness'
+        : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness' ? oldGoal : 'build_muscle';
+      const phone = legacy.profile?.phone ? normalizeKenyanPhone(legacy.profile.phone) : '';
+      const packageType = legacy.profile?.packageType || 'daily';
+      const packageWindow = isValidKenyanPhone(phone) ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
+      const profile: Profile = { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
+        memberType: legacy.profile?.memberType || 'existing', splitStyle: legacy.profile?.splitStyle || 'focused',
+        gender: legacy.profile?.gender || 'prefer_not_to_say', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile?.bodyweightKg) : null,
+        packageType, sessionStartTime: legacy.profile?.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: isValidKenyanPhone(phone) };
+      const migrated: Store = { version: 2, profile, sessions: migratedSessions, weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || [] };
+      localStorage.setItem(STORE_KEY, JSON.stringify(migrated)); return migrated;
     }
-  } catch {
-    return { ...emptyStore, profile: { ...defaultProfile } };
-  }
+  } catch { return { ...emptyStore, profile: { ...defaultProfile } }; }
   return { ...emptyStore, profile: { ...defaultProfile } };
 }
 
