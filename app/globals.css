@@ -573,3 +573,137 @@ body{font-size:16px}
  .dashboard-week-day i{width:30px;height:30px}.dashboard-quick-actions button{padding:11px 8px;gap:7px}
  .dashboard-quick-actions strong{font-size:10px}.dashboard-quick-actions small{font-size:9px}
 }
+
+
+/* Readability balance pass: keep the research-led legibility without oversized cards */
+body{font-size:16px}
+.dashboard-welcome h1{font-size:30px}
+.dashboard-welcome p{font-size:13px}
+.dashboard-membership-line{font-size:11px;padding:10px 13px}
+.dashboard-member-badge strong{font-size:11px}
+.dashboard-member-badge small,.membership-state{font-size:10px}
+.dashboard-renew-note{padding:15px 17px}
+.dashboard-renew-note strong{font-size:13px}
+.dashboard-renew-note span{font-size:11px}
+.dashboard-hero{min-height:296px}
+.dashboard-hero-copy{padding:31px 34px}
+.dashboard-hero-kicker,.dashboard-hero-date{font-size:10px}
+.dashboard-hero-copy h2{font-size:clamp(32px,3.8vw,44px)}
+.dashboard-hero-description{font-size:13px;line-height:1.6}
+.dashboard-hero-meta span{font-size:11px}
+.dashboard-start-button{min-height:45px;padding:12px 17px;font-size:12px}
+.dashboard-stat-grid{gap:12px;margin-bottom:14px}
+.dashboard-stat-card{min-height:100px;padding:16px 16px 19px;border-radius:16px}
+.dashboard-stat-icon{width:38px;height:38px}
+.dashboard-stat-card small{font-size:10px;letter-spacing:.04em}
+.dashboard-stat-card strong{font-size:25px}
+.dashboard-stat-card strong i{font-size:11px}
+.dashboard-stat-card>div:nth-child(2)>span{font-size:10px}
+.dashboard-week-panel,.dashboard-recent-section{padding:20px 20px;border-radius:17px}
+.dashboard-section-heading h2{font-size:19px}
+.dashboard-week-count{font-size:10px}
+.dashboard-week-days{gap:7px}
+.dashboard-week-day>span{font-size:10px}
+.dashboard-week-day i{width:35px;height:35px;font-size:14px}
+.dashboard-week-day small{font-size:9px}
+.dashboard-quick-actions{gap:11px}
+.dashboard-quick-actions button{padding:14px 13px;gap:10px;border-radius:14px}
+.dashboard-quick-actions button>span{width:36px;height:36px}
+.dashboard-quick-actions strong{font-size:11px}
+.dashboard-quick-actions small{font-size:9px}
+.dashboard-recent-item{padding:13px 0;gap:12px}
+.dashboard-recent-icon{width:36px;height:36px}
+.dashboard-recent-item strong{font-size:11px}
+.dashboard-recent-item small,.dashboard-recent-duration{font-size:9px}
+.dashboard-empty-recent{font-size:11px}
+.dashboard-rest-card{padding:20px;border-radius:17px}
+.dashboard-rest-icon{width:46px;height:46px}
+.dashboard-rest-card h2{font-size:18px}
+.dashboard-rest-card p{font-size:12px}
+.program-grid{gap:15px}
+.program-art{height:132px}
+.program-body{padding:17px}
+.program-meta{font-size:9px}
+.program-body h3{font-size:18px}
+.program-body p{font-size:11px;line-height:1.55;min-height:48px}
+.program-foot>span{font-size:9px}
+.program-foot .button{padding:10px 12px;font-size:10px}
+.metric-card{padding:20px 21px}
+.metric-card>span{font-size:12px}
+.metric-card>strong{font-size:31px}
+.metric-card>strong small{font-size:12px}
+.metric-card>p,.metric-card>small{font-size:11px}
+
+@media(max-width:640px){
+ body{font-size:16px}
+ .dashboard-welcome h1{font-size:28px}
+ .dashboard-welcome p{font-size:12px}
+ .dashboard-membership-line{padding:10px 11px;font-size:10px}
+ .dashboard-member-badge strong{font-size:11px}
+ .dashboard-member-badge small,.membership-state{font-size:9px}
+ .dashboard-renew-note{padding:13px 14px}
+ .dashboard-renew-note strong{font-size:12px}
+ .dashboard-renew-note span{font-size:10px}
+ .dashboard-hero{min-height:278px}
+ .dashboard-hero-copy{padding:22px 20px}
+ .dashboard-hero-date,.dashboard-hero-kicker{font-size:9px}
+ .dashboard-hero-copy h2{font-size:32px}
+ .dashboard-hero-description{font-size:12px;line-height:1.55}
+ .dashboard-hero-meta span{font-size:10px}
+ .dashboard-start-button{min-height:43px;padding:11px 15px;font-size:11px}
+ .dashboard-stat-grid{gap:8px;margin-bottom:12px}
+ .dashboard-stat-card{min-height:96px;padding:12px 9px 17px;border-radius:13px}
+ .dashboard-stat-icon{width:31px;height:31px;margin-bottom:7px}
+ .dashboard-stat-icon svg{width:16px;height:16px}
+ .dashboard-stat-card small{font-size:9px;line-height:1.25;letter-spacing:0}
+ .dashboard-stat-card strong{font-size:22px;margin-top:3px}
+ .dashboard-stat-card strong i{font-size:9px}
+ .dashboard-stat-card>div:nth-child(2)>span{font-size:9px}
+ .dashboard-week-panel,.dashboard-recent-section{padding:16px 14px;border-radius:15px;margin-bottom:11px}
+ .dashboard-section-heading{margin-bottom:12px}
+ .dashboard-section-heading h2{font-size:17px}
+ .dashboard-week-count{font-size:9px}
+ .dashboard-week-days{gap:3px}
+ .dashboard-week-day{gap:5px}
+ .dashboard-week-day>span{font-size:9px}
+ .dashboard-week-day i{width:31px;height:31px;font-size:13px}
+ .dashboard-week-day small{font-size:8px}
+ .dashboard-quick-actions{gap:8px;margin-bottom:12px}
+ .dashboard-quick-actions button{padding:11px 9px;gap:8px;border-radius:12px}
+ .dashboard-quick-actions button>span{width:31px;height:31px}
+ .dashboard-quick-actions strong{font-size:10px}
+ .dashboard-quick-actions small{font-size:8px}
+ .dashboard-recent-item{padding:10px 0;gap:9px}
+ .dashboard-recent-icon{width:31px;height:31px}
+ .dashboard-recent-item strong{font-size:10px}
+ .dashboard-recent-item small,.dashboard-recent-duration{font-size:8px}
+ .dashboard-empty-recent{font-size:10px}
+ .dashboard-rest-card{padding:16px;gap:12px}
+ .dashboard-rest-icon{width:41px;height:41px}
+ .dashboard-rest-card h2{font-size:16px}
+ .dashboard-rest-card p{font-size:11px}
+ .program-grid{gap:12px}
+ .program-art{height:116px}
+ .program-body{padding:14px}
+ .program-meta{font-size:8px}
+ .program-body h3{font-size:16px}
+ .program-body p{font-size:10px;min-height:44px}
+ .program-foot>span{font-size:8px}
+ .program-foot .button{font-size:9px;padding:9px 10px}
+ .metric-card{padding:16px}
+ .metric-card>span{font-size:11px}
+ .metric-card>strong{font-size:27px}
+ .metric-card>p,.metric-card>small{font-size:10px}
+}
+@media(max-width:370px){
+ .dashboard-welcome h1{font-size:26px}
+ .dashboard-stat-grid{gap:6px}
+ .dashboard-stat-card{padding-left:7px;padding-right:7px;min-height:92px}
+ .dashboard-stat-card small{font-size:8px}
+ .dashboard-stat-card strong{font-size:20px}
+ .dashboard-week-panel,.dashboard-recent-section{padding-left:12px;padding-right:12px}
+ .dashboard-week-day i{width:28px;height:28px}
+ .dashboard-quick-actions button{padding:10px 7px;gap:6px}
+ .dashboard-quick-actions strong{font-size:9px}
+ .dashboard-quick-actions small{font-size:7.5px}
+}
