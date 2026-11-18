@@ -107,9 +107,9 @@ export default function Home() {
         <Link href="/register" className="text-link">Create your member account <ArrowRight size={16} /></Link>
       </div>
       <div className="member-preview" aria-label="Member space preview">
-        <div className="preview-top"><span>LEGRANDE / MEMBER</span><span className="preview-status"><i /> YOUR PLAN</span></div>
+        <div className="preview-top"><span>LEGRANDE / MEMBER</span><span className="preview-status"><i /> SAMPLE VIEW</span></div>
         <div className="preview-greeting"><small>YOUR NEXT SESSION</small><strong>Upper body</strong><span>Strength · 55–60 min</span></div>
-        <div className="preview-progress"><div><span>THIS WEEK</span><strong>03 <small>/ 04 sessions</small></strong></div><div className="preview-bars"><i /><i /><i /><b /></div></div>
+        <div className="preview-progress"><div><span>EXAMPLE WEEK</span><strong>03 <small>/ 04 sessions</small></strong></div><div className="preview-bars"><i /><i /><i /><b /></div></div>
         <div className="preview-row"><span><Dumbbell size={15} /> Training plan</span><ArrowUpRight size={15} /></div>
         <div className="preview-row"><span><LineChart size={15} /> Progress history</span><ArrowUpRight size={15} /></div>
         <div className="preview-footer">A LITTLE BETTER THAN LAST TIME.</div>
