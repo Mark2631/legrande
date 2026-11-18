@@ -826,6 +826,8 @@ export default function Page() {
     return()=>{cancelled=true}
   }, [])
 
+  const signOut = async () => { await createSupabaseClient().auth.signOut(); window.location.href = '/login' }
+
   const persist = (next: Store) => {
     setStore(next)
     localStorage.setItem(STORE_KEY, JSON.stringify(next))
@@ -951,7 +953,7 @@ export default function Page() {
           {tab === 'today' && <Dashboard store={store} onStart={startWorkout} onTrain={() => { setTrainView('plans'); setTab('train'); }} onHome={() => { setTrainView('home'); setTab('train'); }} pausedWorkout={pausedWorkout} onResume={workout => { setActiveWorkout(workout); setPausedWorkout(null) }} />}
           {tab === 'train' && <TrainingPage store={store} onStart={startWorkout} onRepeat={repeatSession} initialView={trainView} gender={store.profile.gender} />}
           {tab === 'progress' && <ProgressPage store={store} onWeight={() => setModal('weight')} onMeasurement={() => setModal('measurement')} />}
-          {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} />}
+          {tab === 'profile' && <ProfilePage store={store} persist={persist} resetData={resetData} onImport={importData} onSignOut={signOut} />}
         </main>
       </div>
 
@@ -1491,7 +1493,7 @@ function WeightChart({ points, units }: { points: WeightLog[]; units: Units }) {
 }
 
 
-function ProfilePage({ store, persist, resetData, onImport }: { store: Store; persist: (store: Store) => void; resetData: () => void; onImport: (store: Store) => void }) {
+function ProfilePage({ store, persist, resetData, onImport, onSignOut }: { store: Store; persist: (store: Store) => void; resetData: () => void; onImport: (store: Store) => void; onSignOut: () => void }) {
   const profile = store.profile;
   const updateProfile = (patch: Partial<Profile>) => persist({ ...store, profile: { ...profile, ...patch } });
   const updatePackage = (type: PackageType) => updateProfile({ packageType: type, packageStart: '', packageEnd: '' });
@@ -1537,7 +1539,7 @@ function ProfilePage({ store, persist, resetData, onImport }: { store: Store; pe
         <p>Your profile and training history sync to your account and remain cached on this device. Membership access is activated by LeGrande after payment confirmation.</p>
          <p className="photo-credit">Photography: <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">Unsplash contributors</a>. Exercise reference images: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>.</p>
         <div className="privacy-stat"><span>Storage mode</span><strong>Cloud + offline cache</strong></div><div className="privacy-stat"><span>Account security</span><strong>Supabase Auth</strong></div>
-        <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button>
+        <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button><button className="button secondary-button full-width" onClick={onSignOut}>Sign out of this account</button>
         <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>
         <div className="danger-zone"><strong>Reset member data</strong><p>This removes your profile, workout history, weigh-ins and measurements from this browser.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData(); }}>Reset this device</button></div>
       </section>
