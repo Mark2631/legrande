@@ -1,7 +1,7 @@
 {
   "name": "LeGrande Fitness Center — Member Space",
   "short_name": "LeGrande",
-  "start_url": "/",
+  "start_url": "/member",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
