@@ -80,9 +80,9 @@ export default function Join() {
             <form onSubmit={step === 1 ? event => { event.preventDefault(); if (canContinue) { setStatus(''); setStep(2) } else setStatus('Enter your name and all nine digits after +254.') } : submit} className="auth-form">
               {step === 1 ? <>
                 <label className="field-label">Full name<input required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Your full name" /></label>
-                <label className="field-label">Kenyan mobile number</label>
-                <div className="phone-control"><span>+254</span><input required type="tel" inputMode="numeric" autoComplete="tel-national" value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" maxLength={9} /></div>
-                <small className="field-help">Enter 9 digits after +254. Start with 7 or 1.</small>
+                <label className="field-label" htmlFor="enquiry-phone">Kenyan mobile number</label>
+                <div className="phone-control"><span>+254</span><input id="enquiry-phone" required type="tel" inputMode="numeric" autoComplete="tel-national" aria-describedby="enquiry-phone-help" value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" maxLength={9} /></div>
+                <small className="field-help" id="enquiry-phone-help">Enter 9 digits after +254. Start with 7 or 1.</small>
                 <label className="field-label">Email address <span className="optional">(optional)</span><input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>
               </> : <>
                 <div className="plan-choice-list">{plans.map(item => <button type="button" key={item.code} onClick={() => setPlan(item.code)} className={plan === item.code ? 'plan-choice selected' : 'plan-choice'}><span className="plan-choice-radio" /><span className="plan-choice-copy"><strong>{item.title}</strong><small>{item.description}</small></span><b>{item.duration}</b></button>)}</div>
