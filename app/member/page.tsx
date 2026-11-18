@@ -820,7 +820,38 @@ export default function Page() {
       if(p.data && p.data.onboarding_complete){
         const cloud:Store={version:2,profile:{...loaded.profile,name:p.data.full_name||loaded.profile.name,phone:p.data.phone||loaded.profile.phone,gender:p.data.gender,bodyweightKg:p.data.bodyweight_kg, heightCm:p.data.height_cm,memberType:p.data.member_type,packageType:p.data.package_type,packageStart:entitlement.data?.starts_on||'',packageEnd:entitlement.data?.ends_on||'',sessionStartTime:p.data.session_start_time||'08:00',splitStyle:p.data.split_style,goal:p.data.goal,level:p.data.level,weeklyTarget:p.data.weekly_target,units:p.data.units,themeDark:p.data.theme_dark,onboardingComplete:p.data.onboarding_complete},sessions:(s.data||[]).map(x=>({id:x.id,date:x.date,startedAt:Number(x.started_at),finishedAt:Number(x.finished_at),title:x.title,focus:x.focus,mode:x.mode,durationMin:x.duration_min,exercises:x.exercises||[],notes:x.notes||''})),weightLogs:(w.data||[]).map(x=>({date:x.date,kg:Number(x.kg)})),measurementLogs:(m.data||[]).map(x=>({date:x.date,waistCm:x.waist_cm?Number(x.waist_cm):undefined,chestCm:x.chest_cm?Number(x.chest_cm):undefined,armCm:x.arm_cm?Number(x.arm_cm):undefined,thighCm:x.thigh_cm?Number(x.thigh_cm):undefined}))}
         setStore(cloud);localStorage.setItem(STORE_KEY,JSON.stringify(cloud))
-      }else if(loaded.profile.onboardingComplete){await syncStoreToCloud(loaded,user.id)}
+      } else if (p.data) {
+        // A newly registered account already has identity details from Supabase Auth.
+        // Prefill those details so onboarding does not ask for the same information twice.
+        const metadata = user.user_metadata || {}
+        const prefilled: Store = {
+          ...loaded,
+          profile: {
+            ...loaded.profile,
+            name: p.data.full_name || metadata.full_name || loaded.profile.name,
+            phone: p.data.phone ? normalizeKenyanPhone(p.data.phone) : metadata.phone ? normalizeKenyanPhone(metadata.phone) : loaded.profile.phone,
+            gender: p.data.gender || loaded.profile.gender,
+            bodyweightKg: p.data.bodyweight_kg ? Number(p.data.bodyweight_kg) : loaded.profile.bodyweightKg,
+            heightCm: p.data.height_cm ? Number(p.data.height_cm) : loaded.profile.heightCm,
+            memberType: p.data.member_type || loaded.profile.memberType,
+            packageType: p.data.package_type || loaded.profile.packageType,
+            packageStart: '',
+            packageEnd: '',
+            sessionStartTime: p.data.session_start_time || loaded.profile.sessionStartTime,
+            splitStyle: p.data.split_style || loaded.profile.splitStyle,
+            goal: p.data.goal || loaded.profile.goal,
+            level: p.data.level || loaded.profile.level,
+            weeklyTarget: p.data.weekly_target || loaded.profile.weeklyTarget,
+            units: p.data.units || loaded.profile.units,
+            themeDark: Boolean(p.data.theme_dark),
+            onboardingComplete: false
+          }
+        }
+        setStore(prefilled)
+        localStorage.setItem(STORE_KEY, JSON.stringify(prefilled))
+      } else if (loaded.profile.onboardingComplete) {
+        await syncStoreToCloud(loaded, user.id)
+      }
     }
     hydrate().catch(error=>console.error('LeGrande cloud restore failed',error))
     return()=>{cancelled=true}
@@ -937,7 +968,7 @@ export default function Page() {
         </nav>
         <div className="sidebar-bottom">
           <div className="member-mini"><div className="avatar">{store.profile.name.slice(0, 1).toUpperCase()}</div><div><strong>{store.profile.name}</strong><span>{store.profile.level} member</span></div></div>
-          <div className="offline-note"><ShieldCheck size={15} /> Your data stays on this device</div>
+          <div className="offline-note"><ShieldCheck size={15} /> Account sync + device cache</div>
         </div>
       </aside>
 
@@ -1064,13 +1095,13 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
       {step === 4 && <>
         <span className="eyebrow">LEGRANDE MEMBERSHIP</span>
         <h1>Choose your <em>package.</em></h1>
-        <p className="onboard-lede">This is a demo selection. The management portal will handle payment and confirm the actual membership dates.</p>
+        <p className="onboard-lede">Choose the membership you want to request. LeGrande confirms payment and activates access separately.</p>
         <div className="package-choice-grid">
           {([
             ['daily', 'Daily', 'One day of access'],
             ['weekly', 'Weekly', '7 consecutive days'],
-            ['monthly', 'Monthly', '30 days in this preview'],
-            ['semester', 'Full semester', '120 days in this preview']
+            ['monthly', 'Monthly', '30 consecutive days'],
+            ['semester', 'Full semester', '120 consecutive days']
           ] as [PackageType, string, string][]).map(([value, title, description]) => <button type="button" key={value} className={profile.packageType === value ? 'package-choice selected' : 'package-choice'} onClick={() => update({ packageType: value })}><strong>{title}</strong><span>{description}</span></button>)}
         </div>
         <div className="onboard-summary">
@@ -1078,7 +1109,7 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
           <div><span>EXPERIENCE</span><strong>{profile.level}</strong></div><div><span>TRAINING DAYS</span><strong>{profile.weeklyTarget} / week</strong></div>
           <div><span>PACKAGE</span><strong>{packageName(profile.packageType)}</strong></div><div><span>GYM WINDOW</span><strong>{formatSessionWindow(profile.sessionStartTime)}</strong></div>
         </div>
-        <p className="privacy-line"><ShieldCheck size={16} /> Profile details and session history stay in this browser. No payment is taken here.</p>
+        <p className="privacy-line"><ShieldCheck size={16} /> Your profile and training history sync to your member account. LeGrande activates membership after payment confirmation; no payment is taken here.</p>
       </>}
       <div className="onboard-actions">
         {step > 1 && <button className="button quiet" onClick={() => setStep(step - 1)}><ArrowLeft size={16} /> Back</button>}
@@ -1529,19 +1560,19 @@ function ProfilePage({ store, persist, resetData, onImport, onSignOut }: { store
           <div className="profile-setting"><div><strong>Training days</strong><span>Sessions per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
           <label className="field-label">Current bodyweight ({profile.units === 'metric' ? 'kg' : 'lb'})<input type="number" min="1" step="0.1" value={bodyweight ? displayWeight(bodyweight, profile.units).toFixed(1) : ''} placeholder="Add current weight" onChange={event => { const kg = toKg(event.target.value, profile.units); if (kg > 0) persist({ ...store, profile: { ...profile, bodyweightKg: kg }, weightLogs: [...store.weightLogs.filter(item => item.date !== dateKey()), { date: dateKey(), kg }].sort((a, b) => a.date.localeCompare(b.date)) }); }} /></label>
           <label className="field-label">Preferred gym start time<input type="time" value={profile.sessionStartTime} onChange={event => updateProfile({ sessionStartTime: event.target.value })} /></label>
-          <div className="profile-setting"><div><strong>Membership package</strong><span>Requested plan · activation confirmed by LeGrande</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
-          <div className="privacy-stat"><span>Package valid through</span><strong>{packageEndLabel(profile)}</strong></div>
+          <div className="profile-setting"><div><strong>Membership request</strong><span>Changing this preference does not activate access</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
+          <div className="privacy-stat"><span>Access valid through</span><strong>{packageEndLabel(profile)}</strong></div>
           <div className="profile-setting"><div><strong>Measurement units</strong><span>Bodyweight and set loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
           <div className="profile-setting"><div><strong>Appearance</strong><span>Light or dark member space</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
         </div>
       </section>
-      <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Local member profile</h2></div><ShieldCheck size={20} /></div>
+      <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Account & privacy</h2></div><ShieldCheck size={20} /></div>
         <p>Your profile and training history sync to your account and remain cached on this device. Membership access is activated by LeGrande after payment confirmation.</p>
          <p className="photo-credit">Photography: <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">Unsplash contributors</a>. Exercise reference images: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>.</p>
         <div className="privacy-stat"><span>Storage mode</span><strong>Cloud + offline cache</strong></div><div className="privacy-stat"><span>Account security</span><strong>Supabase Auth</strong></div>
         <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button><button className="button secondary-button full-width" onClick={onSignOut}>Sign out of this account</button>
         <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>
-        <div className="danger-zone"><strong>Reset member data</strong><p>This removes your profile, workout history, weigh-ins and measurements from this browser.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData(); }}>Reset this device</button></div>
+        <div className="danger-zone"><strong>Reset member data</strong><p>This resets the training profile and history cached on this device. It does not close your account or cancel a gym membership.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData(); }}>Reset this device</button></div>
       </section>
     </div>
   </>;
