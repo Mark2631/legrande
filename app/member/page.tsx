@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from 'react'
 import type { ChangeEvent } from 'react'
+import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import {
   Activity, ArrowLeft, ArrowRight, Award, BarChart3, CalendarDays, Check,
   CheckCircle2, ChevronRight, Clock3, Dumbbell, Flame,
@@ -759,6 +760,36 @@ function safeReadStore(): Store {
   return { ...emptyStore, profile: { ...defaultProfile } };
 }
 
+
+async function syncStoreToCloud(next: Store, userId: string) {
+  const client = createSupabaseClient()
+  const profile = next.profile
+  const profileResult = await client.from('profiles').upsert({
+    id:userId, full_name:profile.name, phone:profile.phone, gender:profile.gender,
+    bodyweight_kg:profile.bodyweightKg, height_cm:profile.heightCm, member_type:profile.memberType,
+    package_type:profile.packageType, session_start_time:profile.sessionStartTime,
+    split_style:profile.splitStyle, goal:profile.goal, level:profile.level,
+    weekly_target:profile.weeklyTarget, units:profile.units, theme_dark:profile.themeDark,
+    onboarding_complete:profile.onboardingComplete, updated_at:new Date().toISOString()
+  })
+  if(profileResult.error) console.error('LeGrande profile sync failed',profileResult.error.message)
+  if(next.sessions.length){
+    const rows=next.sessions.map(s=>({id:s.id,user_id:userId,date:s.date,started_at:s.startedAt,finished_at:s.finishedAt,title:s.title,focus:s.focus,mode:s.mode||'gym',duration_min:s.durationMin,exercises:s.exercises,notes:s.notes||''}))
+    const result=await client.from('training_sessions').upsert(rows,{onConflict:'id'})
+    if(result.error) console.error('LeGrande session sync failed',result.error.message)
+  }
+  if(next.weightLogs.length){
+    const rows=next.weightLogs.map(x=>({user_id:userId,date:x.date,kg:x.kg}))
+    const result=await client.from('weight_logs').upsert(rows,{onConflict:'user_id,date'})
+    if(result.error) console.error('LeGrande weight sync failed',result.error.message)
+  }
+  if(next.measurementLogs.length){
+    const rows=next.measurementLogs.map(x=>({user_id:userId,date:x.date,waist_cm:x.waistCm??null,chest_cm:x.chestCm??null,arm_cm:x.armCm??null,thigh_cm:x.thighCm??null}))
+    const result=await client.from('measurement_logs').upsert(rows,{onConflict:'user_id,date'})
+    if(result.error) console.error('LeGrande measurement sync failed',result.error.message)
+  }
+}
+
 export default function Page() {
   const [store, setStore] = useState<Store | null>(null)
   const [activeWorkout, setActiveWorkout] = useState<ActiveWorkout | null>(null)
@@ -769,20 +800,36 @@ export default function Page() {
   const [toast, setToast] = useState('')
 
   useEffect(() => {
-    const loaded = safeReadStore()
+    let cancelled=false
+    const loaded=safeReadStore()
     setStore(loaded)
-    try {
-      const active = localStorage.getItem(ACTIVE_KEY)
-      if (active) setPausedWorkout(JSON.parse(active) as ActiveWorkout)
-    } catch {
-      localStorage.removeItem(ACTIVE_KEY)
+    try { const active=localStorage.getItem(ACTIVE_KEY); if(active)setPausedWorkout(JSON.parse(active) as ActiveWorkout) } catch { localStorage.removeItem(ACTIVE_KEY) }
+    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
+    const hydrate=async()=>{
+      const client=createSupabaseClient()
+      const {data:{user}}=await client.auth.getUser()
+      if(!user||cancelled)return
+      const [p,s,w,m,entitlement]=await Promise.all([
+        client.from('profiles').select('*').eq('id',user.id).maybeSingle(),
+        client.from('training_sessions').select('*').eq('user_id',user.id).order('date',{ascending:false}),
+        client.from('weight_logs').select('*').eq('user_id',user.id).order('date',{ascending:true}),
+        client.from('measurement_logs').select('*').eq('user_id',user.id).order('date',{ascending:false}),
+        client.from('membership_records').select('starts_on,ends_on,plan_code').eq('user_id',user.id).eq('status','active').lte('starts_on',dateKey()).gte('ends_on',dateKey()).order('ends_on',{ascending:false}).limit(1).maybeSingle()
+      ])
+      if(cancelled)return
+      if(p.data && p.data.onboarding_complete){
+        const cloud:Store={version:2,profile:{...loaded.profile,name:p.data.full_name||loaded.profile.name,phone:p.data.phone||loaded.profile.phone,gender:p.data.gender,bodyweightKg:p.data.bodyweight_kg, heightCm:p.data.height_cm,memberType:p.data.member_type,packageType:p.data.package_type,packageStart:entitlement.data?.starts_on||'',packageEnd:entitlement.data?.ends_on||'',sessionStartTime:p.data.session_start_time||'08:00',splitStyle:p.data.split_style,goal:p.data.goal,level:p.data.level,weeklyTarget:p.data.weekly_target,units:p.data.units,themeDark:p.data.theme_dark,onboardingComplete:p.data.onboarding_complete},sessions:(s.data||[]).map(x=>({id:x.id,date:x.date,startedAt:Number(x.started_at),finishedAt:Number(x.finished_at),title:x.title,focus:x.focus,mode:x.mode,durationMin:x.duration_min,exercises:x.exercises||[],notes:x.notes||''})),weightLogs:(w.data||[]).map(x=>({date:x.date,kg:Number(x.kg)})),measurementLogs:(m.data||[]).map(x=>({date:x.date,waistCm:x.waist_cm?Number(x.waist_cm):undefined,chestCm:x.chest_cm?Number(x.chest_cm):undefined,armCm:x.arm_cm?Number(x.arm_cm):undefined,thighCm:x.thigh_cm?Number(x.thigh_cm):undefined}))}
+        setStore(cloud);localStorage.setItem(STORE_KEY,JSON.stringify(cloud))
+      }else if(loaded.profile.onboardingComplete){await syncStoreToCloud(loaded,user.id)}
     }
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+    hydrate().catch(error=>console.error('LeGrande cloud restore failed',error))
+    return()=>{cancelled=true}
   }, [])
 
   const persist = (next: Store) => {
     setStore(next)
     localStorage.setItem(STORE_KEY, JSON.stringify(next))
+    createSupabaseClient().auth.getUser().then(({data})=>{if(data.user)void syncStoreToCloud(next,data.user.id)})
   }
   const startWorkout = (program: Program) => {
     if (!store || !isPackageActive(store.profile)) {
