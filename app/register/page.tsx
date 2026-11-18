@@ -80,9 +80,9 @@ export default function Register() {
             <p className="auth-intro">A few details first. You’ll set up your training preferences after signing in.</p>
             <form onSubmit={submit} className="auth-form">
               <label className="field-label">Full name<input required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Your full name" /></label>
-              <label className="field-label">Kenyan mobile number</label>
-              <div className="phone-control"><span>+254</span><input required type="tel" inputMode="numeric" autoComplete="tel-national" value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" maxLength={9} /></div>
-              <small className="field-help">Enter the 9 digits after +254. Start with 7 or 1.</small>
+              <label className="field-label" htmlFor="register-phone">Kenyan mobile number</label>
+              <div className="phone-control"><span>+254</span><input id="register-phone" required type="tel" inputMode="numeric" autoComplete="tel-national" aria-describedby="register-phone-help" value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" maxLength={9} /></div>
+              <small className="field-help" id="register-phone-help">Enter the 9 digits after +254. Start with 7 or 1.</small>
               <label className="field-label">Email address<input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>
               <label className="field-label">Password<div className="password-control"><input required type={showPassword ? 'text' : 'password'} minLength={8} autoComplete="new-password" value={password} onChange={event => setPassword(event.target.value)} placeholder="At least 8 characters" /><button type="button" onClick={() => setShowPassword(value => !value)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div></label>
               {error && <div className="auth-error" role="alert">{error}</div>}
