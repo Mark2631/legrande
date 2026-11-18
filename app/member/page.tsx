@@ -854,75 +854,176 @@ export default function Page() {
   const [trainView, setTrainView] = useState<'plans' | 'home' | 'library'>('plans')
   const [modal, setModal] = useState<'weight' | 'measurement' | null>(null)
   const [toast, setToast] = useState('')
+  const [syncStatus, setSyncStatus] = useState<'checking' | 'syncing' | 'synced' | 'pending'>('checking')
+  const latestStoreRef = useRef<Store | null>(null)
+  const cloudReadyRef = useRef(false)
+  const syncInFlightRef = useRef(false)
+  const syncRequestedRef = useRef(false)
+
+  const runCloudSync = useCallback(async (): Promise<boolean> => {
+    if (!navigator.onLine) {
+      setSyncStatus('pending')
+      return false
+    }
+    if (syncInFlightRef.current) {
+      syncRequestedRef.current = true
+      return false
+    }
+    syncInFlightRef.current = true
+    let ok = false
+    try {
+      do {
+        syncRequestedRef.current = false
+        const snapshot = latestStoreRef.current
+        if (!snapshot) break
+        const client = createSupabaseClient()
+        const { data: { user }, error: authError } = await client.auth.getUser()
+        if (authError || !user) break
+        const result = await syncStoreToCloud(snapshot, user.id)
+        ok = result.ok
+      } while (syncRequestedRef.current && navigator.onLine)
+      setSyncStatus(ok ? 'synced' : 'pending')
+      return ok
+    } catch (error) {
+      console.error('LeGrande cloud sync deferred', error)
+      setSyncStatus('pending')
+      return false
+    } finally {
+      syncInFlightRef.current = false
+      if (syncRequestedRef.current && navigator.onLine) void runCloudSync()
+    }
+  }, [])
 
   useEffect(() => {
-    let cancelled=false
-    const loaded=safeReadStore()
+    let cancelled = false
+    const loaded = safeReadStore()
+    latestStoreRef.current = loaded
     setStore(loaded)
-    try { const active=localStorage.getItem(ACTIVE_KEY); if(active)setPausedWorkout(JSON.parse(active) as ActiveWorkout) } catch { localStorage.removeItem(ACTIVE_KEY) }
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
-    const hydrate=async()=>{
-      const client=createSupabaseClient()
-      const {data:{user}}=await client.auth.getUser()
-      if(!user||cancelled)return
-      const [p,s,w,m,entitlement]=await Promise.all([
-        client.from('profiles').select('*').eq('id',user.id).maybeSingle(),
-        client.from('training_sessions').select('*').eq('user_id',user.id).order('date',{ascending:false}),
-        client.from('weight_logs').select('*').eq('user_id',user.id).order('date',{ascending:true}),
-        client.from('measurement_logs').select('*').eq('user_id',user.id).order('date',{ascending:false}),
-        client.from('membership_records').select('starts_on,ends_on,plan_code').eq('user_id',user.id).eq('status','active').lte('starts_on',dateKey()).gte('ends_on',dateKey()).order('ends_on',{ascending:false}).limit(1).maybeSingle()
-      ])
-      if(cancelled)return
-      if(p.data && p.data.onboarding_complete){
-        const cloud:Store={version:2,profile:{...loaded.profile,name:p.data.full_name||loaded.profile.name,phone:p.data.phone||loaded.profile.phone,gender:p.data.gender,bodyweightKg:p.data.bodyweight_kg, heightCm:p.data.height_cm,memberType:p.data.member_type,packageType:p.data.package_type,packageStart:entitlement.data?.starts_on||'',packageEnd:entitlement.data?.ends_on||'',sessionStartTime:p.data.session_start_time||'08:00',splitStyle:p.data.split_style,goal:p.data.goal,level:p.data.level,weeklyTarget:p.data.weekly_target,units:p.data.units,themeDark:p.data.theme_dark,onboardingComplete:p.data.onboarding_complete},sessions:(s.data||[]).map(x=>({id:x.id,date:x.date,startedAt:Number(x.started_at),finishedAt:Number(x.finished_at),title:x.title,focus:x.focus,mode:x.mode,durationMin:x.duration_min,exercises:x.exercises||[],notes:x.notes||''})),weightLogs:(w.data||[]).map(x=>({date:x.date,kg:Number(x.kg)})),measurementLogs:(m.data||[]).map(x=>({date:x.date,waistCm:x.waist_cm?Number(x.waist_cm):undefined,chestCm:x.chest_cm?Number(x.chest_cm):undefined,armCm:x.arm_cm?Number(x.arm_cm):undefined,thighCm:x.thigh_cm?Number(x.thigh_cm):undefined}))}
-        setStore(cloud);localStorage.setItem(STORE_KEY,JSON.stringify(cloud))
-      } else if (p.data) {
-        // A newly registered account already has identity details from Supabase Auth.
-        // Prefill those details so onboarding does not ask for the same information twice.
-        const metadata = user.user_metadata || {}
-        const prefilled: Store = {
-          ...loaded,
-          profile: {
-            ...loaded.profile,
-            name: p.data.full_name || metadata.full_name || loaded.profile.name,
-            phone: p.data.phone ? normalizeKenyanPhone(p.data.phone) : metadata.phone ? normalizeKenyanPhone(metadata.phone) : loaded.profile.phone,
-            gender: p.data.gender || loaded.profile.gender,
-            bodyweightKg: p.data.bodyweight_kg ? Number(p.data.bodyweight_kg) : loaded.profile.bodyweightKg,
-            heightCm: p.data.height_cm ? Number(p.data.height_cm) : loaded.profile.heightCm,
-            memberType: p.data.member_type || loaded.profile.memberType,
-            packageType: p.data.package_type || loaded.profile.packageType,
-            packageStart: '',
-            packageEnd: '',
-            sessionStartTime: p.data.session_start_time || loaded.profile.sessionStartTime,
-            splitStyle: p.data.split_style || loaded.profile.splitStyle,
-            goal: p.data.goal || loaded.profile.goal,
-            level: p.data.level || loaded.profile.level,
-            weeklyTarget: p.data.weekly_target || loaded.profile.weeklyTarget,
-            units: p.data.units || loaded.profile.units,
-            themeDark: Boolean(p.data.theme_dark),
-            onboardingComplete: false
-          }
-        }
-        setStore(prefilled)
-        localStorage.setItem(STORE_KEY, JSON.stringify(prefilled))
-      } else if (loaded.profile.onboardingComplete) {
-        await syncStoreToCloud(loaded, user.id)
-      }
+    try {
+      const active = localStorage.getItem(ACTIVE_KEY)
+      if (active) setPausedWorkout(JSON.parse(active) as ActiveWorkout)
+    } catch {
+      localStorage.removeItem(ACTIVE_KEY)
     }
-    hydrate().catch(error=>console.error('LeGrande cloud restore failed',error))
-    return()=>{cancelled=true}
-  }, [])
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+
+    const hydrate = async () => {
+      const client = createSupabaseClient()
+      const { data: { user }, error: authError } = await client.auth.getUser()
+      if (authError || !user || cancelled) {
+        setSyncStatus('pending')
+        return
+      }
+      const [p, s, w, m, entitlement] = await Promise.all([
+        client.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+        client.from('training_sessions').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        client.from('weight_logs').select('*').eq('user_id', user.id).order('date', { ascending: true }),
+        client.from('measurement_logs').select('*').eq('user_id', user.id).order('date', { ascending: false }),
+        client.from('membership_records').select('starts_on,ends_on,plan_code').eq('user_id', user.id).eq('status', 'active').lte('starts_on', dateKey()).gt('ends_on', dateKey()).order('ends_on', { ascending: false }).limit(1).maybeSingle()
+      ])
+      if (cancelled) return
+      const failed = p.error || s.error || w.error || m.error || entitlement.error
+      if (failed) {
+        console.error('LeGrande cloud restore incomplete', failed)
+        setSyncStatus('pending')
+        return
+      }
+
+      const metadata = user.user_metadata || {}
+      const cloudUpdatedAt = p.data?.updated_at ? Date.parse(p.data.updated_at) : 0
+      const cloudProfile: Profile = {
+        ...loaded.profile,
+        name: p.data?.full_name || metadata.full_name || loaded.profile.name,
+        phone: p.data?.phone ? normalizeKenyanPhone(p.data.phone) : metadata.phone ? normalizeKenyanPhone(metadata.phone) : loaded.profile.phone,
+        gender: p.data?.gender === 'woman' ? 'woman' : p.data?.gender === 'man' ? 'man' : loaded.profile.gender,
+        bodyweightKg: p.data?.bodyweight_kg ? Number(p.data.bodyweight_kg) : loaded.profile.bodyweightKg,
+        heightCm: p.data?.height_cm ? Number(p.data.height_cm) : loaded.profile.heightCm,
+        memberType: p.data?.member_type || loaded.profile.memberType,
+        packageType: (entitlement.data?.plan_code || p.data?.package_type || loaded.profile.packageType) as PackageType,
+        packageStart: entitlement.data?.starts_on || '',
+        packageEnd: entitlement.data?.ends_on || '',
+        sessionStartTime: p.data?.session_start_time || loaded.profile.sessionStartTime,
+        splitStyle: p.data?.split_style || loaded.profile.splitStyle,
+        goal: (p.data?.goal || loaded.profile.goal) as Goal,
+        level: (p.data?.level || loaded.profile.level) as Level,
+        weeklyTarget: Number(p.data?.weekly_target || loaded.profile.weeklyTarget),
+        units: (p.data?.units || loaded.profile.units) as Units,
+        themeDark: Boolean(p.data?.theme_dark ?? loaded.profile.themeDark),
+        onboardingComplete: Boolean(p.data?.onboarding_complete ?? loaded.profile.onboardingComplete)
+      }
+      const cloud: Store = {
+        version: 2,
+        profile: cloudProfile,
+        sessions: (s.data || []).map(x => ({
+          id: x.id, date: x.date, startedAt: Number(x.started_at), finishedAt: Number(x.finished_at),
+          title: x.title, focus: x.focus, mode: x.mode, durationMin: x.duration_min,
+          exercises: x.exercises || [], notes: x.notes || ''
+        })),
+        weightLogs: (w.data || []).map(x => ({ date: x.date, kg: Number(x.kg) })),
+        measurementLogs: (m.data || []).map(x => ({
+          date: x.date, waistCm: x.waist_cm ? Number(x.waist_cm) : undefined,
+          chestCm: x.chest_cm ? Number(x.chest_cm) : undefined,
+          armCm: x.arm_cm ? Number(x.arm_cm) : undefined,
+          thighCm: x.thigh_cm ? Number(x.thigh_cm) : undefined
+        })),
+        updatedAt: cloudUpdatedAt,
+        entitlementCheckedAt: Date.now()
+      }
+      const merged = mergeStoreWithCloud(loaded, cloud, cloudUpdatedAt)
+      // A successful no-row entitlement query is a verified inactive state.
+      merged.profile.packageStart = entitlement.data?.starts_on || ''
+      merged.profile.packageEnd = entitlement.data?.ends_on || ''
+      merged.profile.packageType = (entitlement.data?.plan_code || p.data?.package_type || merged.profile.packageType) as PackageType
+      merged.entitlementCheckedAt = Date.now()
+      latestStoreRef.current = merged
+      setStore(merged)
+      localStorage.setItem(STORE_KEY, JSON.stringify(merged))
+      cloudReadyRef.current = true
+      void runCloudSync()
+    }
+
+    hydrate().catch(error => {
+      console.error('LeGrande cloud restore failed', error)
+      setSyncStatus('pending')
+    })
+    return () => { cancelled = true }
+  }, [runCloudSync])
+
+  useEffect(() => {
+    const handleOnline = () => { if (cloudReadyRef.current) void runCloudSync() }
+    const handleOffline = () => setSyncStatus('pending')
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [runCloudSync])
 
   const signOut = async () => { await createSupabaseClient().auth.signOut(); window.location.href = '/login' }
 
   const persist = (next: Store) => {
-    setStore(next)
-    localStorage.setItem(STORE_KEY, JSON.stringify(next))
-    createSupabaseClient().auth.getUser().then(({data})=>{if(data.user)void syncStoreToCloud(next,data.user.id)})
+    const previous = latestStoreRef.current
+    const saved: Store = {
+      ...next,
+      profile: {
+        ...next.profile,
+        // Preserve only the entitlement that was checked against the server.
+        packageStart: previous?.profile.packageStart || '',
+        packageEnd: previous?.profile.packageEnd || ''
+      },
+      updatedAt: Date.now(),
+      entitlementCheckedAt: previous?.entitlementCheckedAt || 0
+    }
+    latestStoreRef.current = saved
+    setStore(saved)
+    localStorage.setItem(STORE_KEY, JSON.stringify(saved))
+    if (cloudReadyRef.current) void runCloudSync()
+    else setSyncStatus(navigator.onLine ? 'checking' : 'pending')
   }
   const startWorkout = (program: Program) => {
-    if (!store || !isPackageActive(store.profile)) {
-      setToast('Your membership has ended. Choose a package in Profile to continue.');
+    if (!store || !store.entitlementCheckedAt || !isPackageActive(store.profile)) {
+      setToast('An active membership could not be verified. Reconnect or ask the LeGrande team to confirm your access.');
       window.setTimeout(() => setToast(''), 3200);
       return;
     }
@@ -963,7 +1064,7 @@ export default function Page() {
     setPausedWorkout(null)
     localStorage.removeItem(ACTIVE_KEY)
     setTab('progress')
-    setToast(store.profile.packageType === 'daily' ? 'Workout saved. Your daily pass is active until midnight.' : 'Workout saved. Every rep is on record.')
+    setToast('Workout saved. Every rep is on record.')
     window.setTimeout(() => setToast(''), 2600)
   }
   const resetData = () => {
@@ -974,7 +1075,18 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))), ...((next.profile?.packageStart && next.profile?.packageEnd) ? {} : createPackageWindow(next.profile?.packageType || 'daily')) },
+      version: 2,
+      profile: {
+        ...defaultProfile, ...next.profile,
+        phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '',
+        gender: next.profile?.gender === 'woman' ? 'woman' : 'man',
+        packageType: next.profile?.packageType || 'daily',
+        memberType: next.profile?.memberType || 'existing',
+        splitStyle: next.profile?.splitStyle || 'focused',
+        packageStart: store?.profile.packageStart || '',
+        packageEnd: store?.profile.packageEnd || '',
+        onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || '')))
+      },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
@@ -1024,7 +1136,11 @@ export default function Page() {
         </nav>
         <div className="sidebar-bottom">
           <div className="member-mini"><div className="avatar">{store.profile.name.slice(0, 1).toUpperCase()}</div><div><strong>{store.profile.name}</strong><span>{store.profile.level} member</span></div></div>
-          <div className="offline-note"><ShieldCheck size={15} /> Account sync + device cache</div>
+          <div className="offline-note" role="status" aria-live="polite">
+            <ShieldCheck size={15} />
+            <span>{syncStatus === 'synced' ? 'Account data synced' : syncStatus === 'syncing' ? 'Syncing account data…' : syncStatus === 'checking' ? 'Checking account sync…' : 'Changes saved on this device'}</span>
+            {syncStatus === 'pending' && <button type="button" onClick={() => void runCloudSync()}>Retry</button>}
+          </div>
         </div>
       </aside>
 
@@ -1210,7 +1326,7 @@ function Dashboard({ store, onStart, onTrain, onHome, pausedWorkout, onResume }:
   const progress = Math.min(100, week.length / store.profile.weeklyTarget * 100);
   const streak = currentStreak(store.sessions, store.profile.weeklyTarget);
   const recent = store.sessions.slice(0, 2);
-  const packageActive = isPackageActive(store.profile);
+  const packageActive = Boolean(store.entitlementCheckedAt) && isPackageActive(store.profile);
   const packageEnd = store.profile.packageEnd ? new Date(store.profile.packageEnd + 'T12:00:00') : null;
   const daysLeft = packageEnd ? Math.max(0, Math.ceil((packageEnd.getTime() - new Date(todayKey + 'T12:00:00').getTime()) / 86400000)) : 0;
   const mainMoves = next?.program.exercises.filter(item => item.phase !== 'warmup' && item.phase !== 'cooldown') || [];
