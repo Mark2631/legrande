@@ -1082,3 +1082,10 @@ body{font-size:16px}
  .onboarding-panel h1{font-size:30px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
+
+
+/* Management identity uses the actual LeGrande asset; admin URL is only linked from the site footer. */
+.admin-brand{display:flex;align-items:center;gap:10px}
+.admin-brand img{width:34px;height:34px;object-fit:contain;border:0}
+.admin-brand span{display:grid;gap:3px;font-size:9px;letter-spacing:.16em;font-weight:800}
+.admin-brand small{font:7px 'DM Mono',ui-monospace,monospace;letter-spacing:.14em;color:#77786f}
