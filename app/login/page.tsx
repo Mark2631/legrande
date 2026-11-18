@@ -24,7 +24,8 @@ export default function Login() {
       setBusy(false)
       return
     }
-    router.replace('/member')
+    const destination = new URLSearchParams(window.location.search).get('next')
+    router.replace(destination === '/admin' ? '/admin' : '/member')
     router.refresh()
   }
 
