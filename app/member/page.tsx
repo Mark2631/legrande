@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { createClient as createSupabaseClient } from '@/lib/supabase/client'
 import {
@@ -78,6 +78,8 @@ type Store = {
   sessions: Session[]
   weightLogs: WeightLog[]
   measurementLogs: MeasurementLog[]
+  updatedAt?: number
+  entitlementCheckedAt?: number
 }
 type ProgramExercise = { name: string; muscle: string; equipment: string; sets: number; reps: number; rest: number; cue: string; phase?: 'warmup' | 'main' | 'cooldown'; durationSec?: number }
 type Program = { id: string; title: string; focus: string; level: Level; duration: number; description: string; mode?: 'gym' | 'home'; exercises: ProgramExercise[] }
@@ -470,7 +472,7 @@ function weekSessions(sessions: Session[], date = new Date()) {
   end.setDate(end.getDate() + 7)
   const from = dateKey(start)
   const to = dateKey(end)
-  return sessions.filter(session => session.date >= from && session.date < to)
+  return sessions.filter(session => session.date >= from && session.date < to && (session.mode || 'gym') === 'gym')
 }
 function currentStreak(sessions: Session[], target: number) {
   const now = new Date()
@@ -721,13 +723,16 @@ function safeReadStore(): Store {
       const phone = saved.phone ? normalizeKenyanPhone(saved.phone) : '';
       const packageType = saved.packageType || 'daily';
       const completed = Boolean(saved.onboardingComplete && isValidKenyanPhone(phone));
-      const packageWindow = saved.packageStart && saved.packageEnd ? { packageStart: saved.packageStart, packageEnd: saved.packageEnd }
-        : completed ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
+      const checkedAt = Number(parsed.entitlementCheckedAt || 0);
+      const packageWindow = checkedAt > 0 && saved.packageStart && saved.packageEnd
+        ? { packageStart: saved.packageStart, packageEnd: saved.packageEnd }
+        : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...saved, phone, packageType,
         gender: saved.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(saved.bodyweightKg) > 0 ? Number(saved.bodyweightKg) : null,
         sessionStartTime: saved.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: completed };
       return { version: 2, profile, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
-        weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [], measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [] };
+        weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [], measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [],
+        updatedAt: Number(parsed.updatedAt || 0), entitlementCheckedAt: checkedAt > 0 ? checkedAt : 0 };
     }
     const legacyText = localStorage.getItem('lgg:v1');
     if (legacyText) {
@@ -748,12 +753,11 @@ function safeReadStore(): Store {
         : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness' ? oldGoal : 'build_muscle';
       const phone = legacy.profile?.phone ? normalizeKenyanPhone(legacy.profile.phone) : '';
       const packageType = legacy.profile?.packageType || 'daily';
-      const packageWindow = isValidKenyanPhone(phone) ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
         memberType: legacy.profile?.memberType || 'existing', splitStyle: legacy.profile?.splitStyle || 'focused',
-        gender: legacy.profile?.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile?.bodyweightKg) : null,
-        packageType, sessionStartTime: legacy.profile?.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: isValidKenyanPhone(phone) };
-      const migrated: Store = { version: 2, profile, sessions: migratedSessions, weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || [] };
+        gender: legacy.profile?.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile.bodyweightKg) : null,
+        packageType, packageStart: '', packageEnd: '', sessionStartTime: legacy.profile?.sessionStartTime || '08:00', onboardingComplete: isValidKenyanPhone(phone) };
+      const migrated: Store = { version: 2, profile, sessions: migratedSessions, weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || [], updatedAt: 0, entitlementCheckedAt: 0 };
       localStorage.setItem(STORE_KEY, JSON.stringify(migrated)); return migrated;
     }
   } catch { return { ...emptyStore, profile: { ...defaultProfile } }; }
@@ -761,8 +765,47 @@ function safeReadStore(): Store {
 }
 
 
-async function syncStoreToCloud(next: Store, userId: string) {
+function mergeByDate<T extends { date: string }>(local: T[], cloud: T[], preferLocal: boolean, ascending = false): T[] {
+  const byDate = new Map<string, T>()
+  cloud.forEach(item => byDate.set(item.date, item))
+  if (preferLocal) local.forEach(item => byDate.set(item.date, item))
+  else local.forEach(item => { if (!byDate.has(item.date)) byDate.set(item.date, item) })
+  return Array.from(byDate.values()).sort((a, b) => ascending ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date))
+}
+
+function mergeStoreWithCloud(local: Store, cloud: Store, cloudUpdatedAt: number): Store {
+  const preferLocal = Number(local.updatedAt || 0) > cloudUpdatedAt
+  const profile = preferLocal
+    ? { ...cloud.profile, ...local.profile }
+    : { ...local.profile, ...cloud.profile }
+
+  // Entitlements are authoritative server data and must never be taken from imported
+  // or stale device profile fields.
+  profile.packageStart = cloud.profile.packageStart
+  profile.packageEnd = cloud.profile.packageEnd
+  profile.packageType = cloud.profile.packageType
+
+  const sessionsById = new Map<string, Session>()
+  cloud.sessions.forEach(session => sessionsById.set(session.id, session))
+  local.sessions.forEach(session => {
+    const existing = sessionsById.get(session.id)
+    if (!existing || session.finishedAt >= existing.finishedAt) sessionsById.set(session.id, session)
+  })
+
+  return {
+    version: 2,
+    profile,
+    sessions: Array.from(sessionsById.values()).sort((a, b) => b.startedAt - a.startedAt),
+    weightLogs: mergeByDate(local.weightLogs, cloud.weightLogs, preferLocal, true),
+    measurementLogs: mergeByDate(local.measurementLogs, cloud.measurementLogs, preferLocal),
+    updatedAt: Math.max(Number(local.updatedAt || 0), cloudUpdatedAt),
+    entitlementCheckedAt: cloud.entitlementCheckedAt
+  }
+}
+
+async function syncStoreToCloud(next: Store, userId: string): Promise<{ ok: boolean; errors: string[] }> {
   const client = createSupabaseClient()
+  const errors: string[] = []
   const profile = next.profile
   const profileResult = await client.from('profiles').upsert({
     id:userId, full_name:profile.name, phone:profile.phone, gender:profile.gender,
@@ -772,22 +815,35 @@ async function syncStoreToCloud(next: Store, userId: string) {
     weekly_target:profile.weeklyTarget, units:profile.units, theme_dark:profile.themeDark,
     onboarding_complete:profile.onboardingComplete, updated_at:new Date().toISOString()
   })
-  if(profileResult.error) console.error('LeGrande profile sync failed',profileResult.error.message)
+  if(profileResult.error) {
+    console.error('LeGrande profile sync failed',profileResult.error.message)
+    errors.push('Profile')
+  }
   if(next.sessions.length){
     const rows=next.sessions.map(s=>({id:s.id,user_id:userId,date:s.date,started_at:s.startedAt,finished_at:s.finishedAt,title:s.title,focus:s.focus,mode:s.mode||'gym',duration_min:s.durationMin,exercises:s.exercises,notes:s.notes||''}))
     const result=await client.from('training_sessions').upsert(rows,{onConflict:'id'})
-    if(result.error) console.error('LeGrande session sync failed',result.error.message)
+    if(result.error) {
+      console.error('LeGrande session sync failed',result.error.message)
+      errors.push('Training history')
+    }
   }
   if(next.weightLogs.length){
     const rows=next.weightLogs.map(x=>({user_id:userId,date:x.date,kg:x.kg}))
     const result=await client.from('weight_logs').upsert(rows,{onConflict:'user_id,date'})
-    if(result.error) console.error('LeGrande weight sync failed',result.error.message)
+    if(result.error) {
+      console.error('LeGrande weight sync failed',result.error.message)
+      errors.push('Weight history')
+    }
   }
   if(next.measurementLogs.length){
     const rows=next.measurementLogs.map(x=>({user_id:userId,date:x.date,waist_cm:x.waistCm??null,chest_cm:x.chestCm??null,arm_cm:x.armCm??null,thigh_cm:x.thighCm??null}))
     const result=await client.from('measurement_logs').upsert(rows,{onConflict:'user_id,date'})
-    if(result.error) console.error('LeGrande measurement sync failed',result.error.message)
+    if(result.error) {
+      console.error('LeGrande measurement sync failed',result.error.message)
+      errors.push('Measurement history')
+    }
   }
+  return { ok: errors.length === 0, errors }
 }
 
 export default function Page() {
