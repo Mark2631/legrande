@@ -986,7 +986,7 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
       : true;
   const finish = () => {
     const firstLog: WeightLog | undefined = Number(weight) > 0 ? { date: dateKey(), kg: toKg(weight, profile.units) } : undefined;
-    const packageWindow = createPackageWindow(profile.packageType);
+    const packageWindow = { packageStart: '', packageEnd: '' };
     onComplete({
       ...profile,
       phone: normalizeKenyanPhone(profile.phone),
@@ -1494,7 +1494,7 @@ function WeightChart({ points, units }: { points: WeightLog[]; units: Units }) {
 function ProfilePage({ store, persist, resetData, onImport }: { store: Store; persist: (store: Store) => void; resetData: () => void; onImport: (store: Store) => void }) {
   const profile = store.profile;
   const updateProfile = (patch: Partial<Profile>) => persist({ ...store, profile: { ...profile, ...patch } });
-  const updatePackage = (type: PackageType) => updateProfile({ packageType: type, ...createPackageWindow(type) });
+  const updatePackage = (type: PackageType) => updateProfile({ packageType: type, packageStart: '', packageEnd: '' });
   const exportData = () => {
     const blob = new Blob([JSON.stringify(store, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob); const anchor = document.createElement('a');
@@ -1527,16 +1527,16 @@ function ProfilePage({ store, persist, resetData, onImport }: { store: Store; pe
           <div className="profile-setting"><div><strong>Training days</strong><span>Sessions per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
           <label className="field-label">Current bodyweight ({profile.units === 'metric' ? 'kg' : 'lb'})<input type="number" min="1" step="0.1" value={bodyweight ? displayWeight(bodyweight, profile.units).toFixed(1) : ''} placeholder="Add current weight" onChange={event => { const kg = toKg(event.target.value, profile.units); if (kg > 0) persist({ ...store, profile: { ...profile, bodyweightKg: kg }, weightLogs: [...store.weightLogs.filter(item => item.date !== dateKey()), { date: dateKey(), kg }].sort((a, b) => a.date.localeCompare(b.date)) }); }} /></label>
           <label className="field-label">Preferred gym start time<input type="time" value={profile.sessionStartTime} onChange={event => updateProfile({ sessionStartTime: event.target.value })} /></label>
-          <div className="profile-setting"><div><strong>Membership package</strong><span>Demo selection · payment handled by management</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
+          <div className="profile-setting"><div><strong>Membership package</strong><span>Requested plan · activation confirmed by LeGrande</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
           <div className="privacy-stat"><span>Package valid through</span><strong>{packageEndLabel(profile)}</strong></div>
           <div className="profile-setting"><div><strong>Measurement units</strong><span>Bodyweight and set loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
           <div className="profile-setting"><div><strong>Appearance</strong><span>Light or dark member space</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>
         </div>
       </section>
       <section className="panel privacy-panel"><div className="section-heading"><div><span className="eyebrow">DEVICE & PRIVACY</span><h2>Local member profile</h2></div><ShieldCheck size={20} /></div>
-        <p>Profile and training history stay in this browser. The Kenyan mobile number is stored but not verified. The management portal will confirm package payment and exact entitlement dates.</p>
+        <p>Your profile and training history sync to your account and remain cached on this device. Membership access is activated by LeGrande after payment confirmation.</p>
          <p className="photo-credit">Photography: <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">Unsplash contributors</a>. Exercise reference images: <a href="https://github.com/yuhonas/free-exercise-db" target="_blank" rel="noreferrer">Free Exercise DB</a>.</p>
-        <div className="privacy-stat"><span>Storage mode</span><strong>On this device</strong></div><div className="privacy-stat"><span>Phone verification</span><strong>Not connected</strong></div>
+        <div className="privacy-stat"><span>Storage mode</span><strong>Cloud + offline cache</strong></div><div className="privacy-stat"><span>Account security</span><strong>Supabase Auth</strong></div>
         <button className="button secondary-button full-width" onClick={exportData}><Save size={16} /> Export my backup</button>
         <label className="button secondary-button full-width import-button"><RotateCcw size={16} /> Import a backup<input type="file" accept="application/json,.json" onChange={importFile} /></label>
         <div className="danger-zone"><strong>Reset member data</strong><p>This removes your profile, workout history, weigh-ins and measurements from this browser.</p><button className="danger-button" onClick={() => { if (window.confirm('Permanently remove all LeGrande data saved in this browser? Export a backup first if you need one.')) resetData(); }}>Reset this device</button></div>
