@@ -144,6 +144,39 @@ export default function Home() {
       </div>
     </section>
 
+
+    <section className="faq-section section-wrap" id="before-you-join">
+      <div className="section-side">
+        <span className="section-index">05 / GOOD TO KNOW</span>
+        <span className="section-side-note">BEFORE YOUR FIRST SESSION</span>
+      </div>
+      <div className="faq-main">
+        <div className="faq-heading">
+          <div><span className="eyebrow">A FEW USEFUL DETAILS</span><h2>Before you<br /><em>get started.</em></h2></div>
+          <p>Clear answers about getting in touch, setting up your account and activating membership.</p>
+        </div>
+        <div className="faq-list">
+          <details open>
+            <summary><span>01</span><strong>What happens after I send a membership enquiry?</strong><i /></summary>
+            <p>The LeGrande team follows up using the contact details you provide to discuss the current rate, payment and next steps.</p>
+          </details>
+          <details>
+            <summary><span>02</span><strong>When does my gym access become active?</strong><i /></summary>
+            <p>Membership access is activated by LeGrande after payment is confirmed. Your member account then reflects the issued membership dates.</p>
+          </details>
+          <details>
+            <summary><span>03</span><strong>What can I do in the member space?</strong><i /></summary>
+            <p>Build a training profile, follow gym and home programmes, record workouts and review your training and bodyweight history.</p>
+          </details>
+          <details>
+            <summary><span>04</span><strong>Do I need to create an account before enquiring?</strong><i /></summary>
+            <p>No. You can send a membership enquiry first. Your member account is a separate step for keeping your training profile and history.</p>
+          </details>
+        </div>
+        <div className="faq-cta"><span>STILL HAVE A QUESTION?</span><Link href="/join">Speak to the LeGrande team <ArrowUpRight size={14} /></Link></div>
+      </div>
+    </section>
+
     <section className="closing-section">
       <div className="closing-copy">
         <span className="eyebrow">YOUR NEXT SESSION STARTS WITH A DECISION</span>
