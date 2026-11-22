@@ -1136,3 +1136,133 @@ body{font-size:16px}
 .dashboard-renew-note>a{display:inline-flex;align-items:center;gap:7px;flex-shrink:0;color:var(--ink);font-size:10px;font-weight:700;text-decoration:none;border-bottom:1px solid var(--line);padding:7px 0}
 @media(max-width:850px){.dashboard-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.reward-badges{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:640px){.reward-panel{padding:15px}.reward-heading{display:block}.reward-heading h2{font-size:19px}.reward-heading p{font-size:10px}.reward-emblem{display:inline-flex;margin-top:12px}.reward-badges{gap:7px}.reward-badge{padding:9px}.reward-foot{font-size:8px}.dashboard-renew-note{align-items:flex-start;flex-direction:column}}
+
+/* LeGrande campus refresh: clear black-and-white identity and short member journeys. */
+.campus-site,.campus-form-page{font-family:Manrope,Inter,system-ui,sans-serif;color:#171717;background:#f7f7f5}
+.campus-site *,.campus-form-page *{box-sizing:border-box}
+.campus-site a,.campus-form-page a{color:inherit}
+.campus-header{height:76px;max-width:1320px;margin:auto;padding:0 5.5%;display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:1px solid #e6e6e3}
+.campus-brand{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
+.campus-brand img{width:122px;height:56px;object-fit:contain;object-position:left center}
+.campus-header nav{display:flex;gap:30px;align-items:center}
+.campus-header nav a,.campus-signin{font-size:12px;font-weight:650;text-decoration:none;color:#565656}
+.campus-header nav a:hover,.campus-signin:hover{color:#111}
+.campus-header-actions{display:flex;gap:20px;align-items:center}
+.campus-button{display:inline-flex;align-items:center;justify-content:center;gap:12px;min-height:48px;padding:0 20px;border:1px solid transparent;border-radius:5px;text-decoration:none;font-size:12px;font-weight:800;transition:background .18s,color .18s,transform .18s}
+.campus-button:hover{transform:translateY(-1px)}
+.campus-button-dark{background:#151515;color:#fff!important}
+.campus-button-dark:hover{background:#333}
+.campus-button-light{background:#fff;color:#171717!important}
+.campus-button-light:hover{background:#eaeaea}
+.campus-hero{max-width:1320px;margin:auto;display:grid;grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);min-height:620px;padding:44px 5.5% 66px;gap:5%}
+.campus-hero-copy{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:20px 0}
+.campus-kicker,.campus-section-label{font:700 10px Manrope,Inter,sans-serif;letter-spacing:.14em;color:#666}
+.campus-kicker{display:flex;align-items:center;gap:9px}
+.campus-kicker i{width:7px;height:7px;border-radius:50%;background:#161616}
+.campus-hero h1{font-size:clamp(50px,6.2vw,82px);line-height:.99;letter-spacing:-.075em;font-weight:800;margin:28px 0 20px;color:#111}
+.campus-hero-copy>p{max-width:410px;font-size:15px;line-height:1.8;color:#5c5c5c;margin:0}
+.campus-hero-actions{display:flex;align-items:center;gap:22px;margin-top:30px;flex-wrap:wrap}
+.campus-text-link{font-size:12px;font-weight:700;text-underline-offset:4px;text-decoration-color:#aaa}
+.campus-quick-points{display:flex;flex-wrap:wrap;gap:17px;margin-top:44px;border-top:1px solid #ddd;padding-top:17px;width:100%}
+.campus-quick-points span{display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;color:#545454}
+.campus-quick-points svg{color:#161616}
+.campus-hero-image{min-height:510px;position:relative;overflow:hidden;background:#222;border-radius:3px}
+.campus-hero-image img{width:100%;height:100%;position:absolute;inset:0;object-fit:cover;object-position:center;filter:saturate(.7)}
+.campus-photo-label{position:absolute;left:25px;right:25px;bottom:24px;display:flex;justify-content:space-between;gap:12px;align-items:center;color:#fff}
+.campus-photo-label span{font-size:9px;font-weight:700;letter-spacing:.13em}
+.campus-photo-label strong{font-size:10px;letter-spacing:.1em}
+.campus-intro{max-width:1180px;margin:0 auto;padding:80px 5.5%;display:grid;grid-template-columns:.9fr 1.1fr;gap:10%;align-items:end;border-top:1px solid #e3e3df}
+.campus-intro h2,.campus-membership h2,.campus-contact h2{font-size:clamp(36px,4.2vw,54px);line-height:1.05;letter-spacing:-.065em;font-weight:800;margin:15px 0 0;color:#151515}
+.campus-intro h2 span,.campus-membership h2 span{color:#8b8b8b}
+.campus-intro>p{font-size:14px;line-height:1.9;color:#5f5f5f;max-width:550px;margin:0}
+.campus-features{max-width:1180px;margin:0 auto;padding:8px 5.5% 92px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.campus-features article{padding:25px 22px 26px;background:#fff;border:1px solid #e7e7e3;min-height:205px}
+.campus-feature-icon{width:40px;height:40px;border:1px solid #ddd;display:grid;place-items:center;margin-bottom:27px}
+.campus-features article h3{font-size:19px;letter-spacing:-.04em;margin:11px 0 8px}
+.campus-features article p{font-size:12px;line-height:1.7;color:#656565;margin:0;max-width:300px}
+.campus-membership{background:#eee;padding:78px max(5.5%,calc((100% - 1180px)/2)) 84px}
+.campus-membership-heading{display:flex;justify-content:space-between;align-items:end;gap:40px;max-width:1180px;margin:0 auto 30px}
+.campus-membership-heading>p{max-width:410px;color:#616161;font-size:12px;line-height:1.8;margin:0}
+.campus-plan-grid{max-width:1180px;margin:auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.campus-plan{display:grid;grid-template-columns:1fr auto;align-items:center;gap:5px 8px;min-height:100px;padding:18px 17px;background:#fff;border:1px solid #deded9;text-decoration:none;transition:background .18s,border-color .18s}
+.campus-plan:hover{background:#151515;color:#fff}
+.campus-plan>span{font-size:14px;font-weight:800}
+.campus-plan small{grid-column:1;font-size:10px;color:#777}
+.campus-plan svg{grid-column:2;grid-row:1/3}
+.campus-plan:hover small{color:#ccc}
+.campus-membership-note{max-width:1180px;margin:14px auto 0;color:#777;font-size:10px}
+.campus-contact{max-width:1180px;margin:0 auto;padding:92px 5.5%;display:grid;grid-template-columns:1fr 1fr;gap:8%;align-items:center}
+.campus-contact-image{height:345px;overflow:hidden;background:#222}
+.campus-contact-image img{width:100%;height:100%;object-fit:cover;filter:grayscale(.25) saturate(.7)}
+.campus-contact-copy h2{margin-bottom:17px}
+.campus-contact-copy h2 span{color:#888}
+.campus-contact-copy>p{font-size:13px;color:#626262;line-height:1.8;max-width:420px;margin:0 0 25px}
+.campus-footer{max-width:1320px;margin:auto;padding:25px 5.5%;border-top:1px solid #e0e0dc;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.campus-footer .campus-brand img{width:105px;height:45px}
+.campus-footer>span,.campus-footer>small{font-size:9px;letter-spacing:.12em;color:#777;font-weight:700}
+.campus-footer>div{display:flex;gap:17px;flex-wrap:wrap}
+.campus-footer>div a{font-size:10px;text-decoration:none;color:#555}
+.campus-form-page{min-height:100vh;padding:0 5.5% 22px}
+.campus-form-header{max-width:1180px;margin:auto;height:72px;border-bottom:1px solid #e1e1dc;display:grid;grid-template-columns:1fr auto 1fr;align-items:center}
+.campus-form-back,.campus-form-member{font-size:11px;text-decoration:none;color:#565656;display:inline-flex;align-items:center;gap:7px}
+.campus-form-member{justify-self:end}
+.campus-form-logo img{width:115px;height:54px;object-fit:contain}
+.campus-form-layout{max-width:1180px;margin:40px auto 55px;display:grid;grid-template-columns:minmax(0,1fr) minmax(340px,.75fr);gap:10%;align-items:start}
+.campus-form-intro{padding-top:20px}
+.campus-form-intro h1{font-size:clamp(44px,5.4vw,68px);line-height:.98;letter-spacing:-.075em;margin:20px 0 17px}
+.campus-form-intro h1 span,.campus-form-card h2 span,.campus-form-success h2 span{color:#858585}
+.campus-form-intro>p{font-size:13px;line-height:1.8;color:#666;max-width:450px;margin:0}
+.campus-form-photo{height:255px;overflow:hidden;margin-top:30px;background:#222}
+.campus-form-photo img{width:100%;height:100%;object-fit:cover;filter:grayscale(.25) saturate(.75)}
+.campus-form-tip{display:flex;align-items:center;gap:9px;margin-top:18px;color:#666;font-size:10px}
+.campus-form-tip svg{color:#222}
+.campus-form-card{background:#fff;border:1px solid #e2e2de;padding:30px 29px}
+.campus-form-card h2{font-size:35px;line-height:1.03;letter-spacing:-.07em;margin:11px 0}
+.campus-form-lede,.campus-form-success>p{font-size:11px;line-height:1.7;color:#777;margin:0 0 22px}
+.campus-enquiry-form{display:grid;gap:15px}
+.campus-enquiry-form>label{display:grid;gap:7px;color:#393939;font-size:10px;font-weight:750}
+.campus-enquiry-form input,.campus-enquiry-form select,.campus-enquiry-form textarea{width:100%;min-width:0;border:1px solid #deded9;background:#fff;color:#171717;border-radius:3px;padding:12px 12px;min-height:44px;font:12px Manrope,Inter,sans-serif;outline:none}
+.campus-enquiry-form input:focus,.campus-enquiry-form select:focus,.campus-enquiry-form textarea:focus{border-color:#171717;box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+.campus-enquiry-form textarea{resize:vertical;line-height:1.6}
+.campus-phone-field,.campus-password-field{display:flex;align-items:center;border:1px solid #deded9;background:#fff;min-height:44px}
+.campus-phone-field:focus-within,.campus-password-field:focus-within{border-color:#171717;box-shadow:0 0 0 2px rgba(0,0,0,.08)}
+.campus-phone-field>span{padding:0 12px;border-right:1px solid #e5e5e0;font-size:11px;font-weight:750;color:#333}
+.campus-phone-field input,.campus-password-field input{border:0;box-shadow:none!important;min-height:42px}
+.campus-password-field button{border:0;background:transparent;color:#666;width:42px;height:42px;display:grid;place-items:center;flex-shrink:0}
+.campus-optional{font-size:8px;color:#888;letter-spacing:.08em;font-weight:600;margin-left:4px}
+.campus-submit{width:100%;margin-top:3px}
+.campus-form-footnote{border-top:1px solid #e8e8e4;padding-top:16px;margin-top:19px;font-size:10px;color:#777}
+.campus-form-footnote a{color:#171717;font-weight:800}
+.campus-form-error{padding:10px 12px;border-left:2px solid #a34e4e;background:#f8eeee;color:#8d3b3b;font-size:10px;line-height:1.5}
+.campus-form-success{padding:24px 0}
+.campus-success-icon{width:45px;height:45px;border:1px solid #ccc;display:grid;place-items:center;margin-bottom:25px}
+.campus-form-success h2{font-size:45px;line-height:.98;letter-spacing:-.07em;margin:13px 0}
+.campus-form-success .campus-button{margin-top:5px}
+.campus-form-footer{max-width:1180px;margin:auto;padding:17px 0;border-top:1px solid #e1e1dc;color:#858585;font-size:8px;letter-spacing:.13em}
+.campus-form-footer span{padding:0 5px}
+.workout-screen .rest-banner{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;align-items:center;gap:10px 13px;padding:15px 16px;border-radius:12px;background:#151515;color:#fff;border:1px solid #151515;margin:0 0 17px}
+.workout-screen .rest-banner>div{display:grid;grid-template-columns:20px 1fr;align-items:center;column-gap:8px;color:#fff;font:800 10px Manrope,Inter,sans-serif;letter-spacing:.12em;flex:none}
+.workout-screen .rest-banner>div svg{grid-row:1/3;color:#fff}
+.workout-screen .rest-banner>div small{grid-column:2;color:#c7c7c7;font:400 9px Manrope,Inter,sans-serif;letter-spacing:0;margin-top:4px}
+.workout-screen .rest-banner>strong{font:800 26px Manrope,Inter,sans-serif;letter-spacing:-.04em;color:#fff;font-variant-numeric:tabular-nums}
+.workout-screen .rest-banner button{padding:9px 11px;border:1px solid #535353;border-radius:5px;background:transparent;color:#fff;font:700 9px Manrope,Inter,sans-serif;white-space:nowrap}
+.workout-screen .rest-banner button:hover{background:#fff;color:#111}
+.campus-site .campus-button:focus-visible,.campus-form-page button:focus-visible,.campus-form-page input:focus-visible,.campus-form-page select:focus-visible,.campus-form-page textarea:focus-visible{outline:2px solid #666;outline-offset:3px}
+@media(max-width:850px){
+ .campus-header{padding:0 4%}.campus-header nav{gap:16px}.campus-hero{padding-left:4%;padding-right:4%;grid-template-columns:.9fr 1.1fr;min-height:520px}.campus-hero-image{min-height:440px}
+ .campus-intro,.campus-features{padding-left:4%;padding-right:4%}.campus-membership{padding-left:4%;padding-right:4%}.campus-contact{padding-left:4%;padding-right:4%}
+ .campus-form-layout{gap:5%}.campus-form-page{padding-left:4%;padding-right:4%}
+}
+@media(max-width:640px){
+ .campus-header{height:62px;padding:0 17px;gap:10px}.campus-brand img{width:93px;height:48px}.campus-header nav{display:none}.campus-header-actions{gap:12px}.campus-signin{font-size:10px}.campus-header .campus-button{min-height:37px;padding:0 11px;font-size:10px}
+ .campus-hero{display:flex;flex-direction:column;padding:34px 17px 45px;gap:23px}.campus-hero-copy{padding:0}.campus-hero h1{font-size:51px;margin:18px 0 13px}.campus-hero-copy>p{font-size:13px;line-height:1.7}.campus-hero-actions{margin-top:21px;gap:14px}.campus-quick-points{margin-top:23px;gap:11px}.campus-quick-points span{font-size:9px}.campus-hero-image{height:280px;min-height:280px}
+ .campus-photo-label{left:14px;right:14px;bottom:14px}.campus-photo-label span,.campus-photo-label strong{font-size:7px}
+ .campus-intro{padding:53px 18px 35px;display:block}.campus-intro h2{font-size:41px}.campus-intro>p{margin-top:19px;font-size:12px}
+ .campus-features{padding:0 18px 55px;grid-template-columns:1fr;gap:9px}.campus-features article{min-height:0;padding:18px}.campus-feature-icon{margin-bottom:18px;width:35px;height:35px}.campus-features article h3{font-size:17px}
+ .campus-membership{padding:53px 18px 56px}.campus-membership-heading{display:block;margin-bottom:21px}.campus-membership h2{font-size:40px}.campus-membership-heading>p{margin-top:14px;font-size:11px}.campus-plan-grid{grid-template-columns:1fr 1fr;gap:7px}.campus-plan{min-height:83px;padding:13px}.campus-plan>span{font-size:12px}.campus-plan small{font-size:9px}.campus-membership-note{font-size:9px;line-height:1.5}
+ .campus-contact{padding:55px 18px;display:flex;flex-direction:column;align-items:stretch;gap:24px}.campus-contact-image{height:225px}.campus-contact h2{font-size:41px}.campus-contact-copy>p{font-size:12px}
+ .campus-footer{padding:18px;gap:12px}.campus-footer .campus-brand img{width:90px;height:40px}.campus-footer>span{width:calc(100% - 110px);font-size:7px}.campus-footer>div{width:100%;gap:17px}.campus-footer>div a{font-size:9px}.campus-footer>small{font-size:8px}
+ .campus-form-page{padding:0 17px 15px}.campus-form-header{height:60px}.campus-form-logo img{width:89px;height:46px}.campus-form-back,.campus-form-member{font-size:9px}.campus-form-layout{margin:23px auto 35px;display:flex;flex-direction:column;gap:20px}.campus-form-intro{padding-top:0}.campus-form-intro h1{font-size:43px;margin:13px 0 10px}.campus-form-intro>p{font-size:11px}.campus-form-photo{height:150px;margin-top:15px}.campus-form-tip{font-size:9px;margin-top:11px}
+ .campus-form-card{width:100%;padding:22px 18px}.campus-form-card h2{font-size:31px}.campus-form-lede{font-size:10px;margin-bottom:17px}.campus-enquiry-form{gap:12px}.campus-enquiry-form>label{font-size:9px}.campus-enquiry-form input,.campus-enquiry-form select,.campus-enquiry-form textarea{font-size:12px;min-height:42px}.campus-form-success h2{font-size:40px}
+ .workout-screen .rest-banner{grid-template-columns:1fr auto;gap:10px}.workout-screen .rest-banner>div{grid-column:1}.workout-screen .rest-banner>strong{grid-column:2;grid-row:1}.workout-screen .rest-banner button{min-height:35px}.workout-screen .rest-banner button:nth-last-child(2){grid-column:1}.workout-screen .rest-banner button:last-child{grid-column:2;grid-row:2}
+}
