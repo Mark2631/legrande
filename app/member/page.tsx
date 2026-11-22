@@ -88,7 +88,7 @@ const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
   name: '', phone: '', gender: 'man', bodyweightKg: null, memberType: 'new',
   packageType: 'daily', packageStart: '', packageEnd: '', membershipVerified: false, sessionStartTime: '08:00', splitStyle: 'upper_lower',
-  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
+  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: true, heightCm: null
 }
 const emptyStore: Store = {
   version: 2, profile: defaultProfile, sessions: [], weightLogs: [], measurementLogs: []
@@ -736,7 +736,7 @@ function safeReadStore(): Store {
       const saved = (parsed.profile || {}) as Partial<Profile>;
       const phone = saved.phone ? normalizeKenyanPhone(saved.phone) : '';
       const packageType = saved.packageType || 'daily';
-      const completed = Boolean(saved.onboardingComplete && isValidKenyanPhone(phone));
+      const completed = true;
       const membershipVerified = Boolean(saved.membershipVerified && saved.packageStart && saved.packageEnd);
       const packageWindow = membershipVerified ? { packageStart: saved.packageStart!, packageEnd: saved.packageEnd! } : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...saved, phone, packageType,
@@ -962,7 +962,7 @@ export default function Page() {
     createSupabaseClient().auth.getUser().then(({data})=>{if(data.user)void syncStoreToCloud(next,data.user.id)})
   }
   const startWorkout = (program: Program) => {
-    if (!store || !isPackageActive(store.profile)) {
+    if (!store || (!isPackageActive(store.profile) && program.mode !== 'home')) {
       setToast('Your membership needs to be activated by LeGrande before you can start a gym session.');
       window.setTimeout(() => setToast(''), 3200);
       return;
@@ -1015,7 +1015,7 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', membershipVerified: false, packageStart: '', packageEnd: '', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))) },
+      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', membershipVerified: false, packageStart: '', packageEnd: '', onboardingComplete: true },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
@@ -1288,7 +1288,7 @@ function Dashboard({ store, onStart, onTrain, onHome, pausedWorkout, onResume }:
         <div className='dashboard-hero-actions'><button className='button dashboard-start-button' onClick={() => onStart(next.program)}><Dumbbell size={16} /> {next.isToday && todayDone ? 'Review next workout' : 'Start workout'} <ArrowRight size={15} /></button><span>{formatSessionWindow(store.profile.sessionStartTime)}</span></div>
       </div>
       <div className='dashboard-hero-index'>LEGRANDE <b>FITNESS</b></div>
-    </section> : <section className='dashboard-rest-card'><div className='dashboard-rest-icon'><CheckCircle2 size={20} /></div><div><span className='eyebrow'>{todayDone ? 'SESSION COMPLETE' : 'RECOVERY DAY'}</span><h2>{todayDone ? 'Good work today.' : 'No gym session is scheduled today.'}</h2><p>{store.profile.packageType === 'daily' ? 'Your daily pass is for today. Choose another pass when you return.' : 'Rest is part of a consistent training plan. Your next scheduled session appears automatically.'}</p></div></section>}
+    </section> : <section className='dashboard-rest-card'><div className='dashboard-rest-icon'><CheckCircle2 size={20} /></div><div><span className='eyebrow'>{todayDone ? 'SESSION COMPLETE' : packageActive ? 'NEXT SESSION' : 'MEMBERSHIP'}</span><h2>{todayDone ? 'That’s today’s work done.' : packageActive ? 'Take a moment. Come back ready.' : 'Your training space is ready.'}</h2><p>{packageActive ? 'Your next session will appear here. For now, reset and come back when you are ready.' : 'Send a quick membership enquiry to activate gym access. You can explore home workouts in the meantime.'}</p>{!packageActive && <button className='button secondary-button' onClick={onTrain}>Explore workouts <ArrowRight size={14} /></button>}</div></section>}
     <div className='dashboard-stat-grid'>
       <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><CalendarDays size={16} /></span><div><small>THIS WEEK</small><strong>{week.length}<i> / {store.profile.weeklyTarget}</i></strong><span>sessions completed</span></div><div className='dashboard-stat-track'><i style={{ width: progress + '%' }} /></div></article>
       <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Flame size={16} /></span><div><small>CONSISTENCY</small><strong>{streak}<i> {streak === 1 ? 'week' : 'weeks'}</i></strong><span>current training streak</span></div><div className='dashboard-stat-gold-line' /></article>
@@ -1509,7 +1509,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, 
     <div className="workout-container">
       <div className="workout-heading"><div><span className="eyebrow">IN PROGRESS · {new Date(workout.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} START</span><h1>{workout.title}</h1><p>Focus on clean reps. Record what you actually do.</p></div><div className="workout-counter"><strong>{completed}<small> / {total}</small></strong><span>SETS DONE</span></div></div>
       <div className="workout-progress"><i style={{ width: (total ? completed / total * 100 : 0) + '%' }} /></div>
-      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={17} /><span>REST TIMER</span></div><strong>{formatTime(restRemaining)}</strong><button onClick={() => setRestUntil(null)}>Skip rest</button></div>}
+      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={18} /><span>REST BREAK</span><small>Take a breather before your next set</small></div><strong>{formatTime(restRemaining)}</strong><button type="button" onClick={() => setRestUntil(value => value ? value + 15000 : Date.now() + 15000)}>+15 sec</button><button type="button" onClick={() => setRestUntil(null)}>Skip break</button></div>}
       <div className="active-exercises">{workout.exercises.map((exercise, exerciseIndex) => {
         const previous = latestSet(sessions, exercise.name)
         const done = exercise.sets.filter(set => set.done).length
