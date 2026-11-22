@@ -27,6 +27,7 @@ type Profile = {
   packageType: PackageType
   packageStart: string
   packageEnd: string
+  membershipVerified: boolean
   sessionStartTime: string
   splitStyle: SplitStyle
   goal: Goal
@@ -86,8 +87,8 @@ const STORE_KEY = 'legrande:member:v2'
 const ACTIVE_KEY = 'legrande:active:v1'
 const defaultProfile: Profile = {
   name: '', phone: '', gender: 'man', bodyweightKg: null, memberType: 'new',
-  packageType: 'daily', packageStart: '', packageEnd: '', sessionStartTime: '08:00', splitStyle: 'upper_lower',
-  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: false, heightCm: null
+  packageType: 'daily', packageStart: '', packageEnd: '', membershipVerified: false, sessionStartTime: '08:00', splitStyle: 'upper_lower',
+  goal: 'build_muscle', level: 'beginner', weeklyTarget: 4, units: 'metric', themeDark: false, onboardingComplete: true, heightCm: null
 }
 const emptyStore: Store = {
   version: 2, profile: defaultProfile, sessions: [], weightLogs: [], measurementLogs: []
@@ -517,10 +518,10 @@ function createPackageWindow(type: PackageType, startDate = dateKey()) {
   const end = new Date(startDate + 'T12:00:00'); end.setDate(end.getDate() + packageDurationDays(type));
   return { packageStart: startDate, packageEnd: dateKey(end) };
 }
-function isPackageActive(profile: Profile, date = dateKey()) { return Boolean(profile.packageStart && profile.packageEnd && date >= profile.packageStart && date < profile.packageEnd); }
+function isPackageActive(profile: Profile, date = dateKey()) { return Boolean(profile.membershipVerified && profile.packageStart && profile.packageEnd && date >= profile.packageStart && date < profile.packageEnd); }
 function packageName(type: PackageType) { return type === 'daily' ? 'Daily pass' : type === 'weekly' ? 'Weekly pass' : type === 'monthly' ? 'Monthly membership' : 'Full semester'; }
 function packageEndLabel(profile: Profile) {
-  if (!profile.packageEnd) return 'Not activated';
+  if (!profile.membershipVerified || !profile.packageEnd) return 'Not activated';
   const end = new Date(profile.packageEnd + 'T12:00:00'); end.setDate(end.getDate() - 1);
   return end.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -704,6 +705,21 @@ function totalVolume(sessions: Session[]) {
   return sessions.reduce((total, session) => total + session.exercises.reduce((sum, exercise) =>
     sum + exercise.sets.filter(set => set.done).reduce((volume, set) => volume + set.weightKg * set.reps, 0), 0), 0)
 }
+function getTrainingRewards(sessions: Session[]) {
+  const completedSets=sessions.reduce((total,session)=>total+session.exercises.reduce((count,exercise)=>count+exercise.sets.filter(set=>set.done).length,0),0)
+  const xp=sessions.length*100+completedSets*5
+  const ranks=[{name:'Starter',threshold:0},{name:'Regular',threshold:500},{name:'Consistent',threshold:1500},{name:'Committed',threshold:3500},{name:'Dedicated',threshold:7000}]
+  const index=ranks.reduce((current,item,position)=>xp>=item.threshold?position:current,0)
+  const rank=ranks[index],next=ranks[index+1]||null
+  const progress=next?Math.max(0,Math.min(100,((xp-rank.threshold)/(next.threshold-rank.threshold))*100)):100
+  const milestones=[
+    {title:'First session',target:1,unlocked:sessions.length>=1},
+    {title:'Five sessions',target:5,unlocked:sessions.length>=5},
+    {title:'25 sessions',target:25,unlocked:sessions.length>=25},
+    {title:'50 sessions',target:50,unlocked:sessions.length>=50}
+  ]
+  return {xp,rank,next,progress:Math.round(progress),milestones}
+}
 function displayWeight(kg: number, units: Units) {
   return units === 'imperial' ? kg * 2.20462 : kg
 }
@@ -720,12 +736,12 @@ function safeReadStore(): Store {
       const saved = (parsed.profile || {}) as Partial<Profile>;
       const phone = saved.phone ? normalizeKenyanPhone(saved.phone) : '';
       const packageType = saved.packageType || 'daily';
-      const completed = Boolean(saved.onboardingComplete && isValidKenyanPhone(phone));
-      const packageWindow = saved.packageStart && saved.packageEnd ? { packageStart: saved.packageStart, packageEnd: saved.packageEnd }
-        : completed ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
+      const completed = true;
+      const membershipVerified = Boolean(saved.membershipVerified && saved.packageStart && saved.packageEnd);
+      const packageWindow = membershipVerified ? { packageStart: saved.packageStart!, packageEnd: saved.packageEnd! } : { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...saved, phone, packageType,
         gender: saved.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(saved.bodyweightKg) > 0 ? Number(saved.bodyweightKg) : null,
-        sessionStartTime: saved.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: completed };
+        sessionStartTime: saved.sessionStartTime || '08:00', ...packageWindow, membershipVerified, onboardingComplete: completed };
       return { version: 2, profile, sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
         weightLogs: Array.isArray(parsed.weightLogs) ? parsed.weightLogs : [], measurementLogs: Array.isArray(parsed.measurementLogs) ? parsed.measurementLogs : [] };
     }
@@ -748,11 +764,11 @@ function safeReadStore(): Store {
         : oldGoal === 'strength' || oldGoal === 'fat_loss' || oldGoal === 'general_fitness' ? oldGoal : 'build_muscle';
       const phone = legacy.profile?.phone ? normalizeKenyanPhone(legacy.profile.phone) : '';
       const packageType = legacy.profile?.packageType || 'daily';
-      const packageWindow = isValidKenyanPhone(phone) ? createPackageWindow(packageType) : { packageStart: '', packageEnd: '' };
+      const packageWindow = { packageStart: '', packageEnd: '' };
       const profile: Profile = { ...defaultProfile, ...(legacy.profile || {}), goal: migratedGoal, phone,
         memberType: legacy.profile?.memberType || 'existing', splitStyle: legacy.profile?.splitStyle || 'focused',
         gender: legacy.profile?.gender === 'woman' ? 'woman' : 'man', bodyweightKg: Number(legacy.profile?.bodyweightKg) > 0 ? Number(legacy.profile?.bodyweightKg) : null,
-        packageType, sessionStartTime: legacy.profile?.sessionStartTime || '08:00', ...packageWindow, onboardingComplete: isValidKenyanPhone(phone) };
+        packageType, sessionStartTime: legacy.profile?.sessionStartTime || '08:00', ...packageWindow, membershipVerified: false, onboardingComplete: isValidKenyanPhone(phone) };
       const migrated: Store = { version: 2, profile, sessions: migratedSessions, weightLogs: legacy.weightLogs || [], measurementLogs: legacy.measurementLogs || [] };
       localStorage.setItem(STORE_KEY, JSON.stringify(migrated)); return migrated;
     }
@@ -800,33 +816,145 @@ export default function Page() {
   const [toast, setToast] = useState('')
 
   useEffect(() => {
-    let cancelled=false
-    const loaded=safeReadStore()
-    setStore(loaded)
-    try { const active=localStorage.getItem(ACTIVE_KEY); if(active)setPausedWorkout(JSON.parse(active) as ActiveWorkout) } catch { localStorage.removeItem(ACTIVE_KEY) }
-    if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{})
-    const hydrate=async()=>{
-      const client=createSupabaseClient()
-      const {data:{user}}=await client.auth.getUser()
-      if(!user||cancelled)return
-      const [p,s,w,m,entitlement]=await Promise.all([
-        client.from('profiles').select('*').eq('id',user.id).maybeSingle(),
-        client.from('training_sessions').select('*').eq('user_id',user.id).order('date',{ascending:false}),
-        client.from('weight_logs').select('*').eq('user_id',user.id).order('date',{ascending:true}),
-        client.from('measurement_logs').select('*').eq('user_id',user.id).order('date',{ascending:false}),
-        client.from('membership_records').select('starts_on,ends_on,plan_code').eq('user_id',user.id).eq('status','active').lte('starts_on',dateKey()).gte('ends_on',dateKey()).order('ends_on',{ascending:false}).limit(1).maybeSingle()
-      ])
-      if(cancelled)return
-      if(p.data && p.data.onboarding_complete){
-        const cloud:Store={version:2,profile:{...loaded.profile,name:p.data.full_name||loaded.profile.name,phone:p.data.phone||loaded.profile.phone,gender:p.data.gender,bodyweightKg:p.data.bodyweight_kg, heightCm:p.data.height_cm,memberType:p.data.member_type,packageType:p.data.package_type,packageStart:entitlement.data?.starts_on||'',packageEnd:entitlement.data?.ends_on||'',sessionStartTime:p.data.session_start_time||'08:00',splitStyle:p.data.split_style,goal:p.data.goal,level:p.data.level,weeklyTarget:p.data.weekly_target,units:p.data.units,themeDark:p.data.theme_dark,onboardingComplete:p.data.onboarding_complete},sessions:(s.data||[]).map(x=>({id:x.id,date:x.date,startedAt:Number(x.started_at),finishedAt:Number(x.finished_at),title:x.title,focus:x.focus,mode:x.mode,durationMin:x.duration_min,exercises:x.exercises||[],notes:x.notes||''})),weightLogs:(w.data||[]).map(x=>({date:x.date,kg:Number(x.kg)})),measurementLogs:(m.data||[]).map(x=>({date:x.date,waistCm:x.waist_cm?Number(x.waist_cm):undefined,chestCm:x.chest_cm?Number(x.chest_cm):undefined,armCm:x.arm_cm?Number(x.arm_cm):undefined,thighCm:x.thigh_cm?Number(x.thigh_cm):undefined}))}
-        setStore(cloud);localStorage.setItem(STORE_KEY,JSON.stringify(cloud))
-      }else if(loaded.profile.onboardingComplete){await syncStoreToCloud(loaded,user.id)}
+    let cancelled = false
+    const client = createSupabaseClient()
+    const boot = async () => {
+      const { data: { session } } = await client.auth.getSession()
+      if (cancelled) return
+      if (!session?.user) {
+        localStorage.removeItem(STORE_KEY)
+        localStorage.removeItem(ACTIVE_KEY)
+        localStorage.removeItem('lgg:v1')
+        localStorage.removeItem('legrande:member:account')
+        window.location.replace('/login')
+        return
+      }
+      const user = session.user
+      const metadata = user.user_metadata || {}
+      const accountKey = 'legrande:member:account'
+      const previousAccount = localStorage.getItem(accountKey)
+      let cached = safeReadStore()
+      const cachedPhone = cached.profile.phone ? normalizeKenyanPhone(cached.profile.phone) : ''
+      const accountPhone = metadata.phone ? normalizeKenyanPhone(metadata.phone) : ''
+      const sameLegacyAccount = Boolean(cachedPhone && accountPhone && cachedPhone === accountPhone)
+      if ((previousAccount && previousAccount !== user.id) || (!previousAccount && !sameLegacyAccount)) {
+        localStorage.removeItem(STORE_KEY)
+        localStorage.removeItem(ACTIVE_KEY)
+        localStorage.removeItem('lgg:v1')
+        cached = safeReadStore()
+      }
+      localStorage.setItem(accountKey, user.id)
+      const loaded: Store = {
+        ...cached,
+        profile: {
+          ...cached.profile,
+          name: cached.profile.name || metadata.full_name || '',
+          phone: cached.profile.phone || metadata.phone || '',
+          gender: metadata.gender === 'woman' ? 'woman' : cached.profile.gender
+        }
+      }
+      setStore(loaded)
+      try {
+        const active = localStorage.getItem(ACTIVE_KEY)
+        if (active) setPausedWorkout(JSON.parse(active) as ActiveWorkout)
+      } catch {
+        localStorage.removeItem(ACTIVE_KEY)
+      }
+      if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {})
+      try {
+        const [p,s,w,m,entitlement] = await Promise.all([
+          client.from('profiles').select('*').eq('id',user.id).maybeSingle(),
+          client.from('training_sessions').select('*').eq('user_id',user.id).order('date',{ascending:false}),
+          client.from('weight_logs').select('*').eq('user_id',user.id).order('date',{ascending:false}),
+          client.from('measurement_logs').select('*').eq('user_id',user.id).order('date',{ascending:false}),
+          client.from('membership_records').select('starts_on,ends_on,plan_code').eq('user_id',user.id).eq('status','active').lte('starts_on',dateKey()).gte('ends_on',dateKey()).order('ends_on',{ascending:false}).limit(1).maybeSingle()
+        ])
+        if (cancelled) return
+        const cloudSessions: Session[] = s.error ? [] : (s.data || []).map(item=>({
+          id:item.id,date:item.date,startedAt:Number(item.started_at),finishedAt:Number(item.finished_at),
+          title:item.title,focus:item.focus,mode:item.mode,durationMin:item.duration_min,
+          exercises:item.exercises||[],notes:item.notes||''
+        }))
+        const cloudWeights: WeightLog[] = w.error ? [] : (w.data || []).map(item=>({date:item.date,kg:Number(item.kg)}))
+        const cloudMeasurements: MeasurementLog[] = m.error ? [] : (m.data || []).map(item=>({
+          date:item.date,waistCm:item.waist_cm?Number(item.waist_cm):undefined,
+          chestCm:item.chest_cm?Number(item.chest_cm):undefined,armCm:item.arm_cm?Number(item.arm_cm):undefined,
+          thighCm:item.thigh_cm?Number(item.thigh_cm):undefined
+        }))
+        const sessionsById = new Map<string,Session>()
+        ;[...cloudSessions,...loaded.sessions].forEach(item=>sessionsById.set(item.id,item))
+        const weightsByDate = new Map<string,WeightLog>()
+        ;[...cloudWeights,...loaded.weightLogs].forEach(item=>weightsByDate.set(item.date,item))
+        const measurementsByDate = new Map<string,MeasurementLog>()
+        ;[...cloudMeasurements,...loaded.measurementLogs].forEach(item=>measurementsByDate.set(item.date,item))
+        if (p.data?.onboarding_complete) {
+          const membershipResponseAvailable = !entitlement.error
+          const membershipVerified = membershipResponseAvailable ? Boolean(entitlement.data) : loaded.profile.membershipVerified
+          const cloud: Store = {
+            version:2,
+            profile:{
+              ...loaded.profile,
+              name:p.data.full_name||loaded.profile.name,
+              phone:p.data.phone||loaded.profile.phone,
+              gender:p.data.gender==='woman'||metadata.gender==='woman'?'woman':'man',
+              bodyweightKg:p.data.bodyweight_kg??loaded.profile.bodyweightKg,
+              heightCm:p.data.height_cm??loaded.profile.heightCm,
+              memberType:p.data.member_type||loaded.profile.memberType,
+              packageType:p.data.package_type||loaded.profile.packageType,
+              packageStart:membershipResponseAvailable?entitlement.data?.starts_on||'':loaded.profile.packageStart,
+              packageEnd:membershipResponseAvailable?entitlement.data?.ends_on||'':loaded.profile.packageEnd,
+              membershipVerified,
+              sessionStartTime:p.data.session_start_time||'08:00',
+              splitStyle:p.data.split_style||loaded.profile.splitStyle,
+              goal:p.data.goal||loaded.profile.goal,
+              level:p.data.level||loaded.profile.level,
+              weeklyTarget:p.data.weekly_target||loaded.profile.weeklyTarget,
+              units:p.data.units||loaded.profile.units,
+              themeDark:Boolean(p.data.theme_dark),
+              onboardingComplete:true
+            },
+            sessions:Array.from(sessionsById.values()).sort((a,b)=>b.date.localeCompare(a.date)),
+            weightLogs:Array.from(weightsByDate.values()).sort((a,b)=>a.date.localeCompare(b.date)),
+            measurementLogs:Array.from(measurementsByDate.values()).sort((a,b)=>b.date.localeCompare(a.date))
+          }
+          setStore(cloud)
+          localStorage.setItem(STORE_KEY,JSON.stringify(cloud))
+          if (!s.error&&!w.error&&!m.error&&!p.error) void syncStoreToCloud(cloud,user.id)
+        } else {
+          const prefilled: Store = {
+            ...loaded,
+            profile:{
+              ...loaded.profile,
+              name:loaded.profile.name||p.data?.full_name||metadata.full_name||'',
+              phone:loaded.profile.phone||p.data?.phone||metadata.phone||'',
+              gender:p.data?.gender==='woman'||metadata.gender==='woman'?'woman':'man'
+            }
+          }
+          setStore(prefilled)
+          if (!p.error&&!p.data&&prefilled.profile.onboardingComplete) void syncStoreToCloud(prefilled,user.id)
+        }
+      } catch (error) {
+        console.error('LeGrande cloud restore failed',error)
+        if (!cancelled) setToast('Offline mode: your saved training data is available on this device.')
+      }
     }
-    hydrate().catch(error=>console.error('LeGrande cloud restore failed',error))
-    return()=>{cancelled=true}
-  }, [])
+    boot().catch(error=>{
+      console.error('LeGrande account session could not be restored',error)
+      if (!cancelled) window.location.replace('/login')
+    })
+    return ()=>{cancelled=true}
+  },[])
 
-  const signOut = async () => { await createSupabaseClient().auth.signOut(); window.location.href = '/login' }
+  const signOut = async () => {
+    try { await createSupabaseClient().auth.signOut() }
+    finally {
+      localStorage.removeItem(STORE_KEY)
+      localStorage.removeItem(ACTIVE_KEY)
+      localStorage.removeItem('lgg:v1')
+      localStorage.removeItem('legrande:member:account')
+      window.location.href = '/login'
+    }
+  }
 
   const persist = (next: Store) => {
     setStore(next)
@@ -834,8 +962,8 @@ export default function Page() {
     createSupabaseClient().auth.getUser().then(({data})=>{if(data.user)void syncStoreToCloud(next,data.user.id)})
   }
   const startWorkout = (program: Program) => {
-    if (!store || !isPackageActive(store.profile)) {
-      setToast('Your membership has ended. Choose a package in Profile to continue.');
+    if (!store || (!isPackageActive(store.profile) && program.mode !== 'home')) {
+      setToast('Your membership needs to be activated by LeGrande before you can start a gym session.');
       window.setTimeout(() => setToast(''), 3200);
       return;
     }
@@ -876,7 +1004,7 @@ export default function Page() {
     setPausedWorkout(null)
     localStorage.removeItem(ACTIVE_KEY)
     setTab('progress')
-    setToast(store.profile.packageType === 'daily' ? 'Workout saved. Your daily pass is active until midnight.' : 'Workout saved. Every rep is on record.')
+    setToast('Workout saved. Your training log is up to date.')
     window.setTimeout(() => setToast(''), 2600)
   }
   const resetData = () => {
@@ -887,7 +1015,7 @@ export default function Page() {
   }
   const importData = (next: Store) => {
     const normalized: Store = {
-      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', onboardingComplete: Boolean(next.profile?.onboardingComplete && isValidKenyanPhone(String(next.profile?.phone || ''))), ...((next.profile?.packageStart && next.profile?.packageEnd) ? {} : createPackageWindow(next.profile?.packageType || 'daily')) },
+      version: 2, profile: { ...defaultProfile, ...next.profile, phone: next.profile?.phone ? normalizeKenyanPhone(next.profile.phone) : '', gender: next.profile?.gender === 'woman' ? 'woman' : 'man', packageType: next.profile?.packageType || 'daily', memberType: next.profile?.memberType || 'existing', splitStyle: next.profile?.splitStyle || 'focused', membershipVerified: false, packageStart: '', packageEnd: '', onboardingComplete: true },
       sessions: Array.isArray(next.sessions) ? next.sessions : [],
       weightLogs: Array.isArray(next.weightLogs) ? next.weightLogs : [],
       measurementLogs: Array.isArray(next.measurementLogs) ? next.measurementLogs : [],
@@ -1064,13 +1192,13 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
       {step === 4 && <>
         <span className="eyebrow">LEGRANDE MEMBERSHIP</span>
         <h1>Choose your <em>package.</em></h1>
-        <p className="onboard-lede">This is a demo selection. The management portal will handle payment and confirm the actual membership dates.</p>
+        <p className="onboard-lede">Select the membership duration you want to request. LeGrande will confirm current rates, payment and activation.</p>
         <div className="package-choice-grid">
           {([
             ['daily', 'Daily', 'One day of access'],
             ['weekly', 'Weekly', '7 consecutive days'],
-            ['monthly', 'Monthly', '30 days in this preview'],
-            ['semester', 'Full semester', '120 days in this preview']
+            ['monthly', 'Monthly', '30 days'],
+            ['semester', 'Full semester', '120 days']
           ] as [PackageType, string, string][]).map(([value, title, description]) => <button type="button" key={value} className={profile.packageType === value ? 'package-choice selected' : 'package-choice'} onClick={() => update({ packageType: value })}><strong>{title}</strong><span>{description}</span></button>)}
         </div>
         <div className="onboard-summary">
@@ -1078,7 +1206,7 @@ function Onboarding({ onComplete, initialProfile = defaultProfile }: { onComplet
           <div><span>EXPERIENCE</span><strong>{profile.level}</strong></div><div><span>TRAINING DAYS</span><strong>{profile.weeklyTarget} / week</strong></div>
           <div><span>PACKAGE</span><strong>{packageName(profile.packageType)}</strong></div><div><span>GYM WINDOW</span><strong>{formatSessionWindow(profile.sessionStartTime)}</strong></div>
         </div>
-        <p className="privacy-line"><ShieldCheck size={16} /> Profile details and session history stay in this browser. No payment is taken here.</p>
+        <p className="privacy-line"><ShieldCheck size={16} /> Your profile and training history sync to your account. Membership starts after gym confirmation; no payment is taken here.</p>
       </>}
       <div className="onboard-actions">
         {step > 1 && <button className="button quiet" onClick={() => setStep(step - 1)}><ArrowLeft size={16} /> Back</button>}
@@ -1142,11 +1270,11 @@ function Dashboard({ store, onStart, onTrain, onHome, pausedWorkout, onResume }:
     </header>
     <div className='dashboard-membership-line'>
       <span className={packageActive ? 'membership-dot active' : 'membership-dot'} />
-      <span>{packageActive ? packageName(store.profile.packageType) + ' · ' + daysLeft + (daysLeft === 1 ? ' day left' : ' days left') : 'Membership expired'}</span>
+      <span>{packageActive ? packageName(store.profile.packageType) + ' · ' + daysLeft + (daysLeft === 1 ? ' day left' : ' days left') : 'Membership not active'}</span>
       <span className='membership-line-spacer' />
       <span className='membership-state'>{packageActive ? 'ACTIVE' : 'RENEW'}</span>
     </div>
-    {!packageActive && <section className='dashboard-renew-note'><div><strong>Your membership has ended.</strong><span>Your workout history is saved. Renew in Profile to start another session.</span></div></section>}
+    {!packageActive && <section className='dashboard-renew-note'><div><strong>Membership access is not active.</strong><span>Your training history remains saved. Access begins after LeGrande confirms your membership.</span></div><a href={'/join?plan=' + store.profile.packageType}>Request membership <ArrowRight size={14} /></a></section>}
     {pausedWorkout && <div className='resume-banner'><div><span className='eyebrow'>SESSION PAUSED</span><strong>{pausedWorkout.title}</strong><small>Your sets are saved on this device.</small></div><button className='button primary-button' onClick={() => onResume(pausedWorkout)}>Resume session <ArrowRight size={15} /></button></div>}
     {next ? <section className='dashboard-hero'>
       <TrainingPhoto name={heroMove} className='dashboard-hero-photo' mode='gym' gender={store.profile.gender} alt={heroMove + ' exercise in the gym'} />
@@ -1160,11 +1288,12 @@ function Dashboard({ store, onStart, onTrain, onHome, pausedWorkout, onResume }:
         <div className='dashboard-hero-actions'><button className='button dashboard-start-button' onClick={() => onStart(next.program)}><Dumbbell size={16} /> {next.isToday && todayDone ? 'Review next workout' : 'Start workout'} <ArrowRight size={15} /></button><span>{formatSessionWindow(store.profile.sessionStartTime)}</span></div>
       </div>
       <div className='dashboard-hero-index'>LEGRANDE <b>FITNESS</b></div>
-    </section> : <section className='dashboard-rest-card'><div className='dashboard-rest-icon'><CheckCircle2 size={20} /></div><div><span className='eyebrow'>{todayDone ? 'SESSION COMPLETE' : 'RECOVERY DAY'}</span><h2>{todayDone ? 'Good work today.' : 'No gym session is scheduled today.'}</h2><p>{store.profile.packageType === 'daily' ? 'Your daily pass is for today. Choose another pass when you return.' : 'Rest is part of a consistent training plan. Your next scheduled session appears automatically.'}</p></div></section>}
+    </section> : <section className='dashboard-rest-card'><div className='dashboard-rest-icon'><CheckCircle2 size={20} /></div><div><span className='eyebrow'>{todayDone ? 'SESSION COMPLETE' : packageActive ? 'NEXT SESSION' : 'MEMBERSHIP'}</span><h2>{todayDone ? 'That’s today’s work done.' : packageActive ? 'Take a moment. Come back ready.' : 'Your training space is ready.'}</h2><p>{packageActive ? 'Your next session will appear here. For now, reset and come back when you are ready.' : 'Send a quick membership enquiry to activate gym access. You can explore home workouts in the meantime.'}</p>{!packageActive && <button className='button secondary-button' onClick={onTrain}>Explore workouts <ArrowRight size={14} /></button>}</div></section>}
     <div className='dashboard-stat-grid'>
       <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><CalendarDays size={16} /></span><div><small>THIS WEEK</small><strong>{week.length}<i> / {store.profile.weeklyTarget}</i></strong><span>sessions completed</span></div><div className='dashboard-stat-track'><i style={{ width: progress + '%' }} /></div></article>
       <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Flame size={16} /></span><div><small>CONSISTENCY</small><strong>{streak}<i> {streak === 1 ? 'week' : 'weeks'}</i></strong><span>current training streak</span></div><div className='dashboard-stat-gold-line' /></article>
       <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Trophy size={16} /></span><div><small>TRAINING HISTORY</small><strong>{store.sessions.length}<i> total</i></strong><span>sessions recorded</span></div><div className='dashboard-stat-gold-line' /></article>
+      <article className='dashboard-stat-card'><span className='dashboard-stat-icon'><Zap size={16} /></span><div><small>TRAINING XP</small><strong>{getTrainingRewards(store.sessions).xp.toLocaleString()}<i> XP</i></strong><span>{getTrainingRewards(store.sessions).rank.name} rank</span></div><div className='dashboard-stat-gold-line' /></article>
     </div>
     <section className='dashboard-week-panel'>
       <div className='dashboard-section-heading'><div><span className='eyebrow'>YOUR TRAINING RHYTHM</span><h2>This week</h2></div><span className='dashboard-week-count'>{week.length} / {store.profile.weeklyTarget} sessions</span></div>
@@ -1380,7 +1509,7 @@ function WorkoutRunner({ workout, sessions, units, themeDark, gender, onChange, 
     <div className="workout-container">
       <div className="workout-heading"><div><span className="eyebrow">IN PROGRESS · {new Date(workout.startedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} START</span><h1>{workout.title}</h1><p>Focus on clean reps. Record what you actually do.</p></div><div className="workout-counter"><strong>{completed}<small> / {total}</small></strong><span>SETS DONE</span></div></div>
       <div className="workout-progress"><i style={{ width: (total ? completed / total * 100 : 0) + '%' }} /></div>
-      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={17} /><span>REST TIMER</span></div><strong>{formatTime(restRemaining)}</strong><button onClick={() => setRestUntil(null)}>Skip rest</button></div>}
+      {restRemaining > 0 && <div className="rest-banner"><div><Timer size={18} /><span>REST BREAK</span><small>Take a breather before your next set</small></div><strong>{formatTime(restRemaining)}</strong><button type="button" onClick={() => setRestUntil(value => value ? value + 15000 : Date.now() + 15000)}>+15 sec</button><button type="button" onClick={() => setRestUntil(null)}>Skip break</button></div>}
       <div className="active-exercises">{workout.exercises.map((exercise, exerciseIndex) => {
         const previous = latestSet(sessions, exercise.name)
         const done = exercise.sets.filter(set => set.done).length
@@ -1442,6 +1571,7 @@ function ProgressPage({ store, onWeight, onMeasurement }: { store: Store; onWeig
     return entries.reduce((best, item) => item.kg > best.kg ? item : best, entries[0])
   }).sort((a, b) => b.kg - a.kg).slice(0, 5)
   const best = bestStreak(store.sessions, store.profile.weeklyTarget)
+  const rewards = getTrainingRewards(store.sessions)
   return <>
     <div className="page-intro"><div><span className="eyebrow">YOUR WORK, MEASURED</span><h1>Progress, not pressure.</h1><p>Look for useful trends over time. A single weigh-in or session does not tell the whole story.</p></div><div className="intro-stamp"><BarChart3 size={23} /><span>LF / DATA</span></div></div>
     <div className="progress-metrics">
@@ -1450,6 +1580,12 @@ function ProgressPage({ store, onWeight, onMeasurement }: { store: Store; onWeig
       <div className="metric-card"><span>Best consistency run</span><strong>{best} <small>{best === 1 ? 'week' : 'weeks'}</small></strong><small>Weekly target met</small></div>
       <div className="metric-card"><span>Latest bodyweight</span><strong>{latest ? displayWeight(latest.kg, store.profile.units).toFixed(1) : '—'} <small>{store.profile.units === 'metric' ? 'kg' : 'lb'}</small></strong><small>{latest ? 'Recorded ' + latest.date : 'No weigh-in yet'}</small></div>
     </div>
+    <section className="panel reward-panel">
+      <div className="reward-heading"><div><span className="eyebrow">TRAINING REWARDS</span><h2>{rewards.rank.name}</h2><p>{rewards.xp.toLocaleString()} XP · 100 per completed workout + 5 per completed set</p></div><span className="reward-emblem"><Zap size={20}/>{rewards.rank.name.toUpperCase()}</span></div>
+      <div className="reward-meter" role="progressbar" aria-label="Progress to next training rank" aria-valuemin={0} aria-valuemax={100} aria-valuenow={rewards.progress}><i style={{width:rewards.progress+'%'}}/></div>
+      <div className="reward-foot"><span>{rewards.rank.threshold.toLocaleString()} XP</span><strong>{rewards.next?(rewards.next.threshold-rewards.xp).toLocaleString()+' XP to '+rewards.next.name:'Top rank reached'}</strong><span>{rewards.next?rewards.next.threshold.toLocaleString()+' XP':'7,000+ XP'}</span></div>
+      <div className="reward-badges">{rewards.milestones.map(item=><div className={item.unlocked?'reward-badge unlocked':'reward-badge'} key={item.title}><Award size={16}/><span><strong>{item.title}</strong><small>{item.unlocked?'Unlocked':item.target+' sessions'}</small></span></div>)}</div>
+    </section>
     <section className="panel chart-panel">
       <div className="section-heading"><div><span className="eyebrow">BODYWEIGHT HISTORY</span><h2>Weight trend</h2></div><div className="chart-actions"><div className="segmented small"><button className={range === 30 ? 'selected' : ''} onClick={() => setRange(30)}>30D</button><button className={range === 90 ? 'selected' : ''} onClick={() => setRange(90)}>90D</button><button className={range === 365 ? 'selected' : ''} onClick={() => setRange(365)}>1Y</button></div><button className="button secondary-button" onClick={onWeight}><Plus size={15} /> Log weight</button></div></div>
       {points.length ? <WeightChart points={points} units={store.profile.units} /> : <div className="chart-empty"><TrendingUp size={25} /><strong>Your trend appears here.</strong><span>Record a few weigh-ins over time to see the direction, not just the daily number.</span><button className="text-action" onClick={onWeight}>Add first weigh-in <ArrowRight size={14} /></button></div>}
@@ -1529,7 +1665,7 @@ function ProfilePage({ store, persist, resetData, onImport, onSignOut }: { store
           <div className="profile-setting"><div><strong>Training days</strong><span>Sessions per week</span></div><div className="stepper"><button onClick={() => updateProfile({ weeklyTarget: Math.max(3, profile.weeklyTarget - 1) })}>−</button><strong>{profile.weeklyTarget}</strong><button onClick={() => updateProfile({ weeklyTarget: Math.min(6, profile.weeklyTarget + 1) })}>+</button></div></div>
           <label className="field-label">Current bodyweight ({profile.units === 'metric' ? 'kg' : 'lb'})<input type="number" min="1" step="0.1" value={bodyweight ? displayWeight(bodyweight, profile.units).toFixed(1) : ''} placeholder="Add current weight" onChange={event => { const kg = toKg(event.target.value, profile.units); if (kg > 0) persist({ ...store, profile: { ...profile, bodyweightKg: kg }, weightLogs: [...store.weightLogs.filter(item => item.date !== dateKey()), { date: dateKey(), kg }].sort((a, b) => a.date.localeCompare(b.date)) }); }} /></label>
           <label className="field-label">Preferred gym start time<input type="time" value={profile.sessionStartTime} onChange={event => updateProfile({ sessionStartTime: event.target.value })} /></label>
-          <div className="profile-setting"><div><strong>Membership package</strong><span>Requested plan · activation confirmed by LeGrande</span></div><select value={profile.packageType} onChange={event => updatePackage(event.target.value as PackageType)}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select></div>
+          <div className="profile-setting"><div><strong>Membership request</strong><span>{packageName(profile.packageType)} · access is activated by LeGrande after payment</span></div><select aria-label="Requested membership duration" value={profile.packageType} onChange={event => updateProfile({ packageType: event.target.value as PackageType })}><option value="daily">Daily pass</option><option value="weekly">Weekly pass</option><option value="monthly">Monthly membership</option><option value="semester">Full semester</option></select><a className="button secondary-button membership-request-link" href={'/join?plan=' + profile.packageType}>Request / update</a></div>
           <div className="privacy-stat"><span>Package valid through</span><strong>{packageEndLabel(profile)}</strong></div>
           <div className="profile-setting"><div><strong>Measurement units</strong><span>Bodyweight and set loads</span></div><div className="segmented small"><button className={profile.units === 'metric' ? 'selected' : ''} onClick={() => updateProfile({ units: 'metric' })}>kg</button><button className={profile.units === 'imperial' ? 'selected' : ''} onClick={() => updateProfile({ units: 'imperial' })}>lb</button></div></div>
           <div className="profile-setting"><div><strong>Appearance</strong><span>Light or dark member space</span></div><button className="theme-button in-panel" onClick={() => updateProfile({ themeDark: !profile.themeDark })}>{profile.themeDark ? <Sun size={15} /> : <Moon size={15} />}{profile.themeDark ? 'Light' : 'Dark'}</button></div>

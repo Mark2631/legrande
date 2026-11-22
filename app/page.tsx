@@ -1,5 +1,96 @@
 import Link from 'next/link'
-import {ArrowRight,Check,Clock3,Dumbbell,MapPin,ShieldCheck,Smartphone} from 'lucide-react'
-export const metadata={title:'LeGrande Fitness Center | Train with purpose',description:'A focused training space for strength, fitness and consistency. Explore membership options and join LeGrande Fitness Center.'}
-const plans=[['Daily pass','1 day','A single day of training','daily'],['Weekly pass','7 days','A focused week of training','weekly'],['Monthly membership','30 days','Build a consistent routine','monthly'],['Semester membership','120 days','A longer training commitment','semester']]
-export default function Home(){return <main className="public-site"><header className="public-nav"><Link href="/" className="public-brand"><b>LF</b><span>LEGRANDE<small>FITNESS CENTER</small></span></Link><nav><a href="#training">Training</a><a href="#membership">Membership</a><a href="#visit">Visit</a></nav><Link className="nav-login" href="/login">Member sign in <ArrowRight size={15}/></Link></header><section className="public-hero"><div className="hero-copy"><span className="eyebrow">BUILT AROUND YOUR PROGRESS</span><h1>Strong is<br/><em>earned.</em></h1><p>A place to train with intent, build a routine and measure progress that lasts. Your next session starts with one decision.</p><div className="hero-actions"><Link href="/join" className="solid-cta">Become a member <ArrowRight size={16}/></Link><a href="#training" className="text-cta">Explore the experience ↓</a></div><div className="hero-proof"><span><Check size={14}/> Guided training plans</span><span><Check size={14}/> Track every session</span></div></div><div className="hero-art"><div className="art-frame"><div className="art-ring ring-one"/><div className="art-ring ring-two"/><strong>LF</strong><span className="art-side-label">DISCIPLINE / CONSISTENCY / PROGRESS</span><div className="art-bottom"><span>01 — SHOW UP</span><span>REPEAT.</span></div></div><small>THE WORK IS THE DIFFERENCE.</small></div><div className="hero-index">01 <i/> 04</div></section><section className="manifesto" id="training"><span>THE LEGRANDE APPROACH</span><div><h2>Less noise.<br/>More <em>work.</em></h2><p>Training should feel clear. Set a goal, follow a plan, record the work and return stronger. The member space keeps your routines and progress together, whether you train at the gym or away from it.</p></div></section><section className="experience"><div className="section-intro"><span className="eyebrow">YOUR TRAINING SPACE</span><h2>Everything that<br/>moves you forward.</h2></div><div className="experience-grid"><article><small>01 / PLAN</small><Dumbbell/><h3>Training plans</h3><p>Structured gym and home sessions with exercise cues, sets, reps and rest guidance.</p></article><article><small>02 / RECORD</small><Clock3/><h3>Workout tracking</h3><p>Run a session, log completed sets and keep a history of the work you put in.</p></article><article><small>03 / REVIEW</small><ShieldCheck/><h3>Progress that stays</h3><p>Record bodyweight and measurements, review trends and keep a portable backup.</p></article><article><small>04 / ANYWHERE</small><Smartphone/><h3>Made for your phone</h3><p>Installable member space with an offline-friendly training experience.</p></article></div></section><section className="membership" id="membership"><div className="membership-head"><div><span className="eyebrow">MEMBERSHIP OPTIONS</span><h2>Choose your<br/><em>commitment.</em></h2></div><p>Pick the duration that suits your routine. Current rates and payment confirmation are handled directly by the LeGrande team.</p></div><div className="plan-list">{plans.map((p,i)=><article key={p[3]}><span>0{i+1}</span><div><h3>{p[0]}</h3><p>{p[2]}</p></div><strong>{p[1]}</strong><Link href={'/join?plan='+p[3]} aria-label={'Enquire about '+p[0]}><ArrowRight/></Link></article>)}</div><p className="pricing-note">Rates are confirmed by the gym. No payment is collected on this website.</p></section><section className="visit" id="visit"><div><span className="eyebrow">COME TRAIN WITH US</span><h2>Make the<br/>first move.</h2></div><div className="visit-detail"><MapPin/><div><strong>LeGrande Fitness Center</strong><p>Contact the team for the current location, opening hours and a guided visit.</p><Link href="/join">Request a visit <ArrowRight size={15}/></Link></div></div></section><footer className="public-footer"><Link href="/" className="public-brand"><b>LF</b><span>LEGRANDE<small>FITNESS CENTER</small></span></Link><span>TRAIN WITH PURPOSE. RETURN WITH PROGRESS.</span><Link href="/login">Member space <ArrowRight size={14}/></Link><small>© {new Date().getFullYear()} LeGrande Fitness Center</small></footer></main>}
+import { ArrowRight, ArrowUpRight, Clock3, Dumbbell, Flame, MessageCircle, Target } from 'lucide-react'
+
+export const metadata = {
+  title: 'LeGrande Fitness Center',
+  description: 'Your campus gym. Straightforward membership, practical training plans and progress you can keep building.',
+}
+
+function Brand() {
+  return <Link href="/" className="campus-brand" aria-label="LeGrande Fitness Center home">
+    <img src="/legrande-logo.png" alt="LeGrande Fitness Center" />
+  </Link>
+}
+
+const plans = [
+  { code: 'daily', name: 'Day pass', detail: 'One day at a time' },
+  { code: 'weekly', name: 'Weekly', detail: 'A full week of training' },
+  { code: 'monthly', name: 'Monthly', detail: 'Build a steady routine' },
+  { code: 'semester', name: 'Semester', detail: 'For the long run' },
+]
+
+export default function Home() {
+  return <main className="campus-site">
+    <header className="campus-header">
+      <Brand />
+      <nav aria-label="Main navigation">
+        <a href="#about">About the gym</a>
+        <a href="#membership">Membership</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <div className="campus-header-actions">
+        <Link href="/login" className="campus-signin">Member sign in</Link>
+        <Link href="/join" className="campus-button campus-button-dark">Join the gym <ArrowUpRight size={15} /></Link>
+      </div>
+    </header>
+
+    <section className="campus-hero">
+      <div className="campus-hero-copy">
+        <span className="campus-kicker"><i /> YOUR CAMPUS GYM</span>
+        <h1>Show up.<br />Put in the work.</h1>
+        <p>A straightforward place to lift, move and build a routine. Come as you are. Train at your pace. Keep getting stronger.</p>
+        <div className="campus-hero-actions">
+          <Link href="/join" className="campus-button campus-button-dark">Get started <ArrowRight size={16} /></Link>
+          <Link href="/login" className="campus-text-link">Already a member? Sign in</Link>
+        </div>
+        <div className="campus-quick-points">
+          <span><Dumbbell size={15} /> Practical workouts</span>
+          <span><Clock3 size={15} /> Guided rest breaks</span>
+          <span><Target size={15} /> Track your progress</span>
+        </div>
+      </div>
+      <div className="campus-hero-image">
+        <img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1800&q=85" alt="Gym floor with strength training equipment" />
+        <div className="campus-photo-label"><span>LEGRANDE FITNESS CENTER</span><strong>MAKE TODAY COUNT.</strong></div>
+      </div>
+    </section>
+
+    <section className="campus-intro" id="about">
+      <div><span className="campus-section-label">THE GYM</span><h2>Good training.<br /><span>No fuss.</span></h2></div>
+      <p>You do not need a complicated plan to get started. Choose a workout, follow the movements, take your rest breaks and record the work you complete. The goal is to make it easier to come back for your next session.</p>
+    </section>
+
+    <section className="campus-features">
+      <article><span className="campus-feature-icon"><Dumbbell size={20} /></span><span className="campus-section-label">01 / TRAIN</span><h3>Know what to do.</h3><p>Simple gym and no-equipment routines with movement photos, sets and reps.</p></article>
+      <article><span className="campus-feature-icon"><Clock3 size={20} /></span><span className="campus-section-label">02 / KEEP YOUR PACE</span><h3>Take your rest breaks.</h3><p>Use the built-in workout timer and recovery countdown between sets.</p></article>
+      <article><span className="campus-feature-icon"><Flame size={20} /></span><span className="campus-section-label">03 / KEEP GOING</span><h3>See your progress.</h3><p>Save sessions, build consistency and see how far your training has come.</p></article>
+    </section>
+
+    <section className="campus-membership" id="membership">
+      <div className="campus-membership-heading">
+        <div><span className="campus-section-label">MEMBERSHIP</span><h2>Pick your <span>pace.</span></h2></div>
+        <p>Not sure which option suits you? Send an enquiry and the gym team can explain the current student rates and how to get started.</p>
+      </div>
+      <div className="campus-plan-grid">
+        {plans.map(plan => <Link href={'/join?plan=' + plan.code} key={plan.code} className="campus-plan"><span>{plan.name}</span><small>{plan.detail}</small><ArrowUpRight size={18} /></Link>)}
+      </div>
+      <p className="campus-membership-note">Rates and payment are confirmed by the gym team. No payment is collected on this website.</p>
+    </section>
+
+    <section className="campus-contact" id="contact">
+      <div className="campus-contact-image"><img src="https://images.unsplash.com/photo-1581009146145-b5ef050c2e1a?auto=format&fit=crop&w=1300&q=85" alt="Athlete training with weights" /></div>
+      <div className="campus-contact-copy">
+        <span className="campus-section-label">NEED A HAND?</span>
+        <h2>Questions before<br />you <span>join?</span></h2>
+        <p>Ask about membership, visiting the gym or getting started with a workout. Send a quick message and the team can get back to you.</p>
+        <Link href="/join" className="campus-button campus-button-light">Talk to the gym team <MessageCircle size={16} /></Link>
+      </div>
+    </section>
+
+    <footer className="campus-footer">
+      <Brand /><span>TRAIN AT YOUR PACE. KEEP SHOWING UP.</span>
+      <div><Link href="/join">Join the gym</Link><Link href="/login">Member sign in</Link><Link href="/admin">Staff access</Link></div>
+      <small>© {new Date().getFullYear()} LeGrande Fitness Center</small>
+    </footer>
+  </main>
+}
