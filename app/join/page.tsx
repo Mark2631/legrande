@@ -2,14 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, ArrowUpRight, CheckCircle2, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, CheckCircle2, MessageCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 const plans = [
-  { code: 'daily', title: 'Day pass', duration: '01 day', description: 'A single day of training' },
-  { code: 'weekly', title: 'Weekly', duration: '07 days', description: 'A focused week of training' },
-  { code: 'monthly', title: 'Monthly', duration: '30 days', description: 'Build a consistent routine' },
-  { code: 'semester', title: 'Semester', duration: '120 days', description: 'A longer training commitment' },
+  { code: 'daily', title: 'Day pass' },
+  { code: 'weekly', title: 'Weekly' },
+  { code: 'monthly', title: 'Monthly' },
+  { code: 'semester', title: 'Semester' },
 ]
 
 function nationalDigits(value: string) {
@@ -20,7 +20,6 @@ function nationalDigits(value: string) {
 }
 
 export default function Join() {
-  const [step, setStep] = useState(1)
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
@@ -41,79 +40,76 @@ export default function Join() {
         setPhone(current => current || nationalDigits(metadata.phone || ''))
         setEmail(current => current || user.email || '')
       } catch {
-        // The enquiry can still be completed manually.
+        // A visitor can still complete the enquiry manually.
       }
     }
     void prefill()
   }, [])
 
   const validPhone = /^[17]\d{8}$/.test(phone)
-  const canContinue = name.trim().length > 1 && validPhone
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!canContinue) { setStep(1); setStatus('Enter your name and a valid Kenyan mobile number.'); return }
-    setBusy(true)
     setStatus('')
-    const { error } = await createClient().from('lead_inquiries').insert({
-      name: name.trim(), phone: '+254' + phone, email: email.trim().toLowerCase() || null,
-      plan_code: plan, message: message.trim(),
-    })
-    if (error) {
-      setStatus('We could not send your enquiry. Please check your connection and try again.')
+    if (name.trim().length < 2) { setStatus('Please enter your name.'); return }
+    if (!validPhone) { setStatus('Enter a valid Kenyan mobile number.'); return }
+
+    setBusy(true)
+    try {
+      const { error } = await createClient().from('lead_inquiries').insert({
+        name: name.trim(),
+        phone: '+254' + phone,
+        email: email.trim().toLowerCase() || null,
+        plan_code: plan,
+        message: message.trim(),
+      })
+      if (error) throw error
+      setStatus('success')
+    } catch {
+      setStatus('We could not send your message. Check your connection and try again.')
+    } finally {
       setBusy(false)
-      return
     }
-    setStatus('success')
-    setBusy(false)
   }
 
-  return <main className="auth-page">
-    <div className="auth-topbar"><Link href="/" className="auth-back"><ArrowLeft size={16} /> Back to LeGrande</Link><span>LEGRANDE / MEMBERSHIP</span></div>
-    <div className="auth-layout join-layout">
-      <section className="auth-visual">
-        <img src="https://images.unsplash.com/photo-1758875569256-f37c438cac65?auto=format&fit=crop&w=1400&q=85" alt="Athlete training in a gym" />
-        <div className="auth-visual-overlay" />
-        <div className="auth-visual-copy"><span>YOUR NEXT CHAPTER STARTS HERE</span><h1>Make room<br />for <em>progress.</em></h1><p>Tell us a little about yourself. The LeGrande team will help you take the next step.</p><div className="auth-visual-foot">LEGRANDE FITNESS CENTER <i /> MEMBERSHIP ENQUIRY</div></div>
+  return <main className="campus-form-page">
+    <header className="campus-form-header">
+      <Link href="/" className="campus-form-back"><ArrowLeft size={16} /> Back to LeGrande</Link>
+      <Link href="/" className="campus-form-logo"><img src="/legrande-logo.png" alt="LeGrande Fitness Center" /></Link>
+      <Link href="/login" className="campus-form-member">Member sign in</Link>
+    </header>
+    <div className="campus-form-layout">
+      <section className="campus-form-intro">
+        <span className="campus-section-label">LEGRANDE / MEMBERSHIP</span>
+        <h1>Let’s get you<br /><span>started.</span></h1>
+        <p>Send your details once. The gym team will follow up about current rates, payment and your first visit.</p>
+        <div className="campus-form-photo"><img src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?auto=format&fit=crop&w=1200&q=85" alt="Strength training equipment inside a gym" /></div>
+        <div className="campus-form-tip"><MessageCircle size={16} /><span>No account or payment needed to ask a question.</span></div>
       </section>
-      <section className="auth-form-side">
-        <div className="auth-brand"><img src="/legrande-logo.png" alt="LeGrande Fitness Center" /><span><strong>LEGRANDE</strong><small>FITNESS CENTER</small></span></div>
-        <div className="auth-card">
-          {status === 'success' ? <div className="auth-success">
-            <div className="success-icon"><CheckCircle2 size={24} /></div><span className="eyebrow">ENQUIRY RECEIVED</span>
-            <h2>We’ll take it<br /><em>from here.</em></h2>
-            <p>Your membership enquiry has been sent. The LeGrande team can follow up using the contact details you provided.</p>
-            <Link href="/" className="button-primary auth-submit">Back to LeGrande <ArrowRight size={16} /></Link>
-          </div> : <>
-            <div className="auth-step-line"><span>STEP 0{step} / 02</span><i /><span>{step === 1 ? 'YOUR DETAILS' : 'MEMBERSHIP'}</span></div>
-            <div className="step-progress"><i style={{ width: step === 1 ? '50%' : '100%' }} /></div>
-            <span className="eyebrow">MEMBERSHIP ENQUIRY</span>
-            <h2>{step === 1 ? <>Let’s get to<br /><em>know you.</em></> : <>Choose your<br /><em>membership.</em></>}</h2>
-            <p className="auth-intro">{step === 1 ? 'Share the best way for the team to reach you.' : 'Choose a starting point. Current rates and payment are confirmed by the team.'}</p>
-            <form onSubmit={step === 1 ? event => { event.preventDefault(); if (canContinue) { setStatus(''); setStep(2) } else setStatus('Enter your name and all nine digits after +254.') } : submit} className="auth-form">
-              {step === 1 ? <>
-                <label className="field-label">Full name<input required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Your full name" /></label>
-                <label className="field-label" htmlFor="enquiry-phone">Kenyan mobile number</label>
-                <div className="phone-control"><span>+254</span><input id="enquiry-phone" required type="tel" inputMode="numeric" autoComplete="tel-national" pattern="[17][0-9]{8}" title="Enter nine digits starting with 7 or 1" aria-describedby="enquiry-phone-help" value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" maxLength={9} /></div>
-                <small className="field-help" id="enquiry-phone-help">Enter 9 digits after +254. Start with 7 or 1.</small>
-                <label className="field-label">Email address <span className="optional">(optional)</span><input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>
-              </> : <>
-                <div className="plan-choice-list">{plans.map(item => <button type="button" key={item.code} onClick={() => setPlan(item.code)} className={plan === item.code ? 'plan-choice selected' : 'plan-choice'}><span className="plan-choice-radio" /><span className="plan-choice-copy"><strong>{item.title}</strong><small>{item.description}</small></span><b>{item.duration}</b></button>)}</div>
-                <label className="field-label">Anything else we should know? <span className="optional">(optional)</span><textarea rows={3} maxLength={500} value={message} onChange={event => setMessage(event.target.value)} placeholder="Ask about a visit, membership or getting started…" /></label>
-                <div className="enquiry-review"><span>YOUR DETAILS</span><strong>{name}</strong><small>+254 {phone} {email ? '· ' + email : ''}</small><button type="button" onClick={() => setStep(1)}>Edit details</button></div>
-              </>}
-              {status && status !== 'success' && <div className="auth-error" role="alert">{status}</div>}
-              <div className="auth-form-actions">
-                {step === 2 && <button type="button" className="button-quiet" onClick={() => { setStatus(''); setStep(1) }}>Back</button>}
-                <button className="button-primary auth-submit" disabled={busy || (step === 2 && !canContinue)}>{busy ? 'Sending enquiry…' : step === 1 ? 'Continue' : 'Send membership enquiry'} <ArrowRight size={16} /></button>
-              </div>
-            </form>
-            <div className="auth-legal"><ShieldCheck size={15} /><span>Your information is used to respond to this enquiry. No payment is taken here.</span></div>
-            <div className="auth-switch">Already a member? <Link href="/login">Sign in</Link></div>
-          </>}
-        </div>
-        <div className="auth-footer-note">© {new Date().getFullYear()} LEGRANDE FITNESS CENTER</div>
+      <section className="campus-form-card">
+        {status === 'success' ? <div className="campus-form-success">
+          <span className="campus-success-icon"><CheckCircle2 size={25} /></span>
+          <span className="campus-section-label">MESSAGE SENT</span>
+          <h2>We’ll be<br /><span>in touch.</span></h2>
+          <p>Your enquiry has been sent to the LeGrande team. They can follow up using the contact details you provided.</p>
+          <Link href="/" className="campus-button campus-button-dark">Back to LeGrande <ArrowRight size={16} /></Link>
+        </div> : <>
+          <span className="campus-section-label">A QUICK ENQUIRY</span>
+          <h2>How can we<br /><span>reach you?</span></h2>
+          <p className="campus-form-lede">Just the essentials. You can ask a question in the message box too.</p>
+          <form onSubmit={submit} className="campus-enquiry-form">
+            <label>Your name<input required minLength={2} maxLength={80} autoComplete="name" value={name} onChange={event => setName(event.target.value)} placeholder="Full name" /></label>
+            <label>Mobile number<div className="campus-phone-field"><span>+254</span><input required type="tel" inputMode="numeric" autoComplete="tel-national" pattern="[17][0-9]{8}" maxLength={9} value={phone} onChange={event => setPhone(nationalDigits(event.target.value))} placeholder="7XX XXX XXX" /></div></label>
+            <label>Email <span className="campus-optional">OPTIONAL</span><input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} placeholder="you@example.com" /></label>
+            <label>Membership option<select value={plan} onChange={event => setPlan(event.target.value)}>{plans.map(item => <option value={item.code} key={item.code}>{item.title}</option>)}</select></label>
+            <label>Message <span className="campus-optional">OPTIONAL</span><textarea rows={3} maxLength={500} value={message} onChange={event => setMessage(event.target.value)} placeholder="Ask about rates, visiting or getting started…" /></label>
+            {status && status !== 'success' && <div className="campus-form-error" role="alert">{status}</div>}
+            <button className="campus-button campus-button-dark campus-submit" disabled={busy}>{busy ? 'Sending…' : 'Send enquiry'} <ArrowRight size={16} /></button>
+          </form>
+          <div className="campus-form-footnote">No payment is taken here. The gym team confirms your membership directly.</div>
+        </>}
       </section>
     </div>
+    <footer className="campus-form-footer">LEGRANDE FITNESS CENTER <span>·</span> TRAIN AT YOUR PACE</footer>
   </main>
 }
